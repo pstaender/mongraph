@@ -36,9 +36,6 @@ alice.save -> bob.save -> zoe.save ->
           MATCH p = shortestPath( a-[*..15]->b )
           RETURN p;
         """
-        alice.queryGraph query, (err, documents, result) ->
-          process.loadDocumentsFromNodeArray result[0].nodes, (err, docs) ->
-            print "#{docs[0].name} knows #{docs[2].name} through #{docs[1].name}"
-
-
+        alice.queryGraph query, (err, docs) ->
+          print "#{docs[0].name} knows #{docs[2].name} through #{docs[1].name}"
 

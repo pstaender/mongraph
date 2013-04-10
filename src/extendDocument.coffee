@@ -31,7 +31,11 @@ module.exports = (mongodb, graphdb, globalOptions) ->
           else
             # return first first property otherwise
             result[Object.keys(result)[0]]
-        processtools.loadDocumentsFromRelationshipArray options.mongodbConnection, data, cb
+        if processtools.constructorNameOf(data[0]) is 'Relationship'
+          processtools.loadDocumentsFromRelationshipArray options.mongodbConnection, data, cb
+        # TODO: distinguish between 'Path', 'Node' etc ...
+        else
+          processtools.loadDocumentsFromNodeArray data, cb
       else
         # prevent `undefined is not a function` if no cb is given
         cb(err, map) if typeof cb is 'function'

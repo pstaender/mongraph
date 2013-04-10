@@ -36,14 +36,15 @@ getObjectIDsAsArray = (mixed) ->
     ids = [ getObjectIDAsString(mixed) ]
   ids
 
-loadDocumentsFromNodeArray = (arrayWithNodes, cb) ->
+loadDocumentsFromNodeArray = (result, cb) ->
+  arrayWithNodes = result[0]?.nodes
+  return cb("Couldn't find any nodes to process", result) unless arrayWithNodes
   join = Join.create()
   for node, i in arrayWithNodes
     if node.id
       callbackDocument = join.add()
       node.getDocument callbackDocument
   join.when ->
-    # console.log array, b
     err = null
     data = []
     for item in arguments
