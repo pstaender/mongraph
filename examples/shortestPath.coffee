@@ -3,12 +3,13 @@ mongoose = require("mongoose")
 mongoose.connect("mongodb://localhost/mongraph_example")
 neo4j = require("neo4j")
 mongraph = require("../src/mongraph")
+graphdb = new neo4j.GraphDatabase("http://localhost:7474")
 process = require("../src/processtools")
 print = console.log
 
 # init
 mongraph.init
-  neo4j: new neo4j.GraphDatabase("http://localhost:7474")
+  neo4j: graphdb
   mongoose: mongoose
 
 # define mode
@@ -40,4 +41,4 @@ alice.save -> bob.save -> charles.save -> zoe.save ->
         """
         alice.queryGraph query, (err, docs) ->
           print "#{docs[0].name} knows #{docs[3].name} through #{docs[1].name} and #{docs[2].name}"
-
+          #alice.remove()

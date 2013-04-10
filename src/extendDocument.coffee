@@ -1,9 +1,9 @@
 processtools = require('./processtools')
 _s = require('underscore.string')
 
-module.exports = (mongodb, graphdb, globalOptions) ->
+module.exports = (mongoose, graphdb, globalOptions) ->
 
-  Document = mongodb.Document
+  Document = mongoose.Document
 
   node = graphdb.createNode()
 
@@ -14,8 +14,8 @@ module.exports = (mongodb, graphdb, globalOptions) ->
 
   _queryGraphDB = (cypher, options = {}, cb) ->
     options.loadDocuments ?= true
-    # TODO: "mongodb.connection" doesn't work as expected
-    # but options.mongodb native connection is mandatory
+    # TODO: "mongoose.connection" doesn't work as expected
+    # but options.mongoose native connection is mandatory
     # so we must ensure that we always attach a connection from document
     # TODO: type check
     return cb("Set 'option.mongodbConnection' with a NativeConnection to process query", null) unless processtools.constructorNameOf(options.mongodbConnection) is 'NativeConnection'
@@ -45,8 +45,10 @@ module.exports = (mongodb, graphdb, globalOptions) ->
     doc = @
     collectionName = doc.constructor.collection.name
     id = processtools.getObjectIDAsString(doc)
-    # find equivalent node in graphdb
-    # cache node existing?, not implemented
+    # Find equivalent node in graphdb
+    # TODO: cache existing node
+    # TODO: replace ny graphdb.getNodeById,
+    # but for that we need always the node id stored in this document (problem with mongoose plugin)
     graphdb.getIndexedNode collectionName, '_id', id, (foundErr, node) ->
       node.document = doc if node# cache  
       if doCreateIfNotExists and not node

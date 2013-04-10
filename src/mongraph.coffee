@@ -1,4 +1,5 @@
 processtools = require('./processtools')
+mongraphMongoosePlugin = require('./mongraphMongoosePlugin')
 
 # shortcut
 constructorNameOf = processtools.constructorNameOf
@@ -19,6 +20,7 @@ init = (options = {}) ->
   config.options.storeDocumentInGraphDatabase ?= false # TODO: implement
   config.options.cacheNodes ?= true # TODO: implement
   config.options.loadMongoDBRecords = true # TODO: implement
+  config.options.loadMongoosePlugin = true
   config.options.relationships ?= {}
   config.options.relationships.storeTimestamp = true # is always true
   config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
@@ -43,6 +45,13 @@ init = (options = {}) ->
   require('./extendDocument')(config.mongoose, config.graphdb, config.options)
   # extend Node(s) with DocumentDB interoperability
   require('./extendNode')(config.graphdb, config.mongoose, config.options)
+  
+  # TODO: currently we must init() mongraph before defining any schema
+  # solution could be: Activate it in project manually before defining models... ?!
+  
+  # Load plugin and extend schemas with middleware
+  # -> http://mongoosejs.com/docs/plugins.html
+  config.mongoose.plugin(mongraphMongoosePlugin) if config.options.loadMongoosePlugin
 
 
 module.exports = {init,config,processtools,useBidirectionalRelations}

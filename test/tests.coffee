@@ -21,12 +21,17 @@ describe "Mongraph", ->
     mongoose.connection.close()
     # Establish connections to mongodb + neo4j
     graph = new neo4j.GraphDatabase('http://localhost:7474')
-    mongo = mongoose.createConnection("mongodb://localhost/mongraph_test")
+    mongoose.connect("mongodb://localhost/mongraph_test")
+
+    mongraph.init {
+      neo4j: graph
+      mongoose: mongoose
+    }
     
     # define model
     schema = name: String
 
-    Person = mongo.model "Person", schema
+    Person = mongoose.model "Person", schema
 
     alice = new Person(name: "alice")
     bob   = new Person(name: "bob")
@@ -58,11 +63,6 @@ describe "Mongraph", ->
           persons.push(pers2) if pers2 and not err
           expect(persons).to.have.length(2)
           done()
-
-      it 'expect to get an error if not passing mongoose + neo4j handlers as arguments', ->
-        expect(-> mongraph.init()).to.throwError()
-        expect(-> mongraph.init({ mongoose: mongoose })).to.throwError()
-        expect(-> mongraph.init({ mongoose: mongoose, neo4j: graph })).not.to.throwError()
 
   describe 'mongoose::Document', ->
 
