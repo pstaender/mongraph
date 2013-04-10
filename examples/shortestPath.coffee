@@ -40,3 +40,5 @@ alice.save -> bob.save -> zoe.save ->
           process.loadDocumentsFromNodeArray result[0].nodes, (err, docs) ->
             print "#{docs[0].name} knows #{docs[2].name} through #{docs[1].name}"
 
+
+
