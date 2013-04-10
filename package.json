@@ -1,0 +1,33 @@
+{
+  "name": "mongraph",
+  "description": "Mongraph combines documentstorage database with graph-database relationships",
+  "version": "0.1.0",
+  "author": "Philipp Staender",
+  "homepage": "https://github.com/pstaender/mongraph/",
+  "main": "./lib/mongraph",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com:pstaender/mongraph.git"
+  },
+  "scripts": {
+    "test": "mocha",
+    "build": "coffee -cbo lib src",
+    "example": "coffee -cbo lib src && node examples/example.js"
+  },
+  "devDependencies": {
+    "coffee-script": "latest",
+    "mocha": ">= 1.7.0",
+    "expect.js": ">= 0.2.0",
+    "should": ">= 1.2.2",
+    "mongoose": ">=3.6",
+    "neo4j": ">=0.2"
+  },
+  "dependencies": {
+    "underscore.string": ">= 2.3",
+    "join": ">= 2.3",
+    "mongodb": ">= 1.2"
+  },
+  "licenses" : {
+    "type" : "MIT"
+  }
+}
