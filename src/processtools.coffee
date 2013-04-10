@@ -36,17 +36,34 @@ getObjectIDsAsArray = (mixed) ->
     ids = [ getObjectIDAsString(mixed) ]
   ids
 
+loadDocumentsFromNodeArray = (arrayWithNodes, cb) ->
+  join = Join.create()
+  for node, i in arrayWithNodes
+    if node.id
+      callbackDocument = join.add()
+      node.getDocument callbackDocument
+  join.when ->
+    # console.log array, b
+    err = null
+    data = []
+    for item in arguments
+      err = item[0]
+      data.push item[1]
+    cb(err,data)
+
 # load record(s) by id from a given array
-loadDocumentsFromRelationshipArray = (mongodb, array, cb) ->
-  return cb('Need db connection as argument', null) if constructorNameOf(mongodb) isnt 'NativeConnection'
-  return cb('No Array given', null) unless array?.constructor == Array or (array = getObjectIDsAsArray(array)).constructor == Array
+loadDocumentsFromRelationshipArray = (mongodb, graphResultset, cb) ->
+  return cb('Need db connection as argument', null, graphResultset) if constructorNameOf(mongodb) isnt 'NativeConnection'
+  return cb('No Array given', null, graphResultset) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
   # sort out all non relationship objects
   relations = []
-  documents = []
-  for relation, i in array
+  for relation, i in graphResultset
     relations.push(relation) if constructorNameOf(relation) is 'Relationship'
-  # cancel if no relationships found
-  return cb(null,null) unless relations.length > 0
+  # skip it if no relationships (as expected) where found
+  # but in case we having another result object
+  # we pass it as 3rd argument so that it can be processed some other way
+  # TODO: distinguish between relationships, nodes + paths as result
+  return cb(null,null,graphResultset) unless relations.length > 0
   join = Join.create()
   # We have to query each record, because they can be stored in different collections
   # TODO: presort collections and do "where in []" queries for each collection
@@ -67,6 +84,6 @@ loadDocumentsFromRelationshipArray = (mongodb, array, cb) ->
         relation.from = doc
         callbackFrom(err, relation)
   join.when ->
-    cb(null, relations, documents)
+    cb(null, relations, graphResultset)
 
-module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback}
+module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback}

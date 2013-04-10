@@ -16,7 +16,9 @@ module.exports = (mongodb, graphdb, globalOptions) ->
     options.loadDocuments ?= true
     # TODO: "mongodb.connection" doesn't work as expected
     # but options.mongodb native connection is mandatory
-    options.mongodbConnection ?= mongodb.connection
+    # so we must ensure that we always attach a connection from document
+    # TODO: type check
+    return cb("Set 'option.mongodbConnection' with a NativeConnection to process query", null) unless processtools.constructorNameOf(options.mongodbConnection) is 'NativeConnection'
     graphdb.query cypher, (err, map) ->
       # add query to error if we have one, better for debugging
       # TODO: remove later or use an option switch ?!
@@ -27,7 +29,8 @@ module.exports = (mongodb, graphdb, globalOptions) ->
           if options.processPart
             result[options.processPart]
           else
-            result
+            # return first first property otherwise
+            result[Object.keys(result)[0]]
         processtools.loadDocumentsFromRelationshipArray options.mongodbConnection, data, cb
       else
         # prevent `undefined is not a function` if no cb is given
@@ -44,7 +47,7 @@ module.exports = (mongodb, graphdb, globalOptions) ->
       node.document = doc if node# cache  
       if doCreateIfNotExists and not node
         # create new node and save
-        node = graphdb.createNode( _id: id )
+        node = graphdb.createNode( _id: id, collection: collectionName )
         if globalOptions.storeDocumentInGraphDatabase
           # Store mongodb record in graphdb as well
           # e.g. { getters: true }
@@ -108,6 +111,13 @@ module.exports = (mongodb, graphdb, globalOptions) ->
         return cb(err) if err
         found.push(second)
         cb(err, found) if typeof cb is 'function'
+
+  Document::queryGraph = (chypherQuery, options, cb) ->
+    doc = @
+    {options, cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.mongodbConnection = doc.db
+    _queryGraphDB(chypherQuery, options, cb)
+
   
   Document::queryRelationships = (kindOfRelationship, options, cb) ->
     # options can be a cypher query as string
