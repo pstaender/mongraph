@@ -225,22 +225,11 @@ describe "Mongraph", ->
         # delete all relationships between alice, bob + zoe
         # longest:  alice -> bob -> charles -> zoe
         # shortest: alice -> bob -> zoe
-        alice.removeRelationships 'knows', (err1) -> bob.removeRelationships 'knows', (err2) -> zoe.removeRelationships 'knows', (err3) ->
-          expect(err1).to.be null
-          expect(err2).to.be null
-          expect(err3).to.be null
-          alice.createRelationshipTo bob, 'knows', (err, relation) ->  
-            expect(relation).to.be.an 'object'
-            expect(err).to.be null
-            bob.createRelationshipTo charles, 'knows', (err, relation) ->
-              expect(relation).to.be.an 'object'
-              expect(err).to.be null
-              bob.createRelationshipTo zoe, 'knows', (err, relation) ->
-                expect(relation).to.be.an 'object'
-                expect(err).to.be null
-                charles.createRelationshipTo zoe, 'knows', (err, relation) ->
-                  expect(relation).to.be.an 'object'
-                  expect(err).to.be null
+        alice.removeRelationships 'knows', -> bob.removeRelationships 'knows', -> zoe.removeRelationships 'knows', ->
+          alice.createRelationshipTo bob, 'knows', ->  
+            bob.createRelationshipTo charles, 'knows', ->
+              bob.createRelationshipTo zoe, 'knows', ->
+                charles.createRelationshipTo zoe, 'knows', ->
                   alice.shortestPathTo zoe, 'knows', (err, path) ->
                     expect(path).to.be.an 'object'
                     expect(err).to.be null
