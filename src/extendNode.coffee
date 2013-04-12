@@ -21,8 +21,7 @@ module.exports = (graphdb, mongoose, options) ->
     cb(new Error("No cb given", null)) if typeof cb isnt 'function'
     # we need to query the collection natively here
     # TODO: find a more elegant way to access models instead of needing the "registerModels" way...
-    modelName = processtools.getModelByCollectionName(collectionName, mongoose)
-    collection = mongoose.models[modelName] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
+    collection = processtools.getCollectionByCollectionName(collectionName, mongoose)
     collection.findOne { _id: _id }, cb
 
   #### Loads corresponding document from given neo4j url 
@@ -42,7 +41,7 @@ module.exports = (graphdb, mongoose, options) ->
   Node::getMongoId = ->
     # TODO: sometimes node doen't include the data -> would need extra call
     # e.g.: _data: { self: 'http://localhost:7474/db/data/node/X' } }
-    @_data?.data?._id
+    @_data?.data?._id# or null
 
   #### Loads the node's corresponding document from mongodb
   Node::getDocument = (cb) ->

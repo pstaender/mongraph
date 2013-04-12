@@ -36,6 +36,7 @@ getObjectIDsAsArray = (mixed) ->
     ids = [ getObjectIDAsString(mixed) ]
   ids
 
+# TODO: make simpler queries (to neo4j + mongodb) -> only by id's
 loadDocumentsWithConditions = (documents, conditions, options, cb) ->
   {options,cb} = sortOptionsAndCallback(options,cb)
   mongoose = options.mongodb
@@ -43,7 +44,16 @@ loadDocumentsWithConditions = (documents, conditions, options, cb) ->
   for doc in documents
     collectionName = doc.constructor.collection.name
     collections[collectionName] ?= []
-    collections[collectionName].push(doc)
+    collections[collectionName].push(doc._id)
+  join = Join.create()
+  # iterate through all collections
+  for collection, ids of collections
+    condition = { $and: [ { _id: { $in: ids } } , options.where ] }
+    console.log collection, collection
+    # callback = join.add()
+    # mongoose.collection(collectionName).findOne condition , (err, doc) ->
+    #   relation.from = doc
+    #   callbackFrom(err, relation)
 
   cb(new Error('Not implemented yet'), null)
 
@@ -53,6 +63,8 @@ loadDocumentsFromNodeArray = (result, options, cb) ->
   mongoose = options.mongodb
   arrayWithNodes = result[0]?.nodes
   return cb(new Error("Couldn't find any nodes to process"), result) unless arrayWithNodes
+  # Load corresponding documents to all nodes... no other way, yet
+  # TODO: do a more economical query to graphdb or mongodb to get the document id
   join = Join.create()
   for node, i in arrayWithNodes
     if node.id
@@ -66,9 +78,6 @@ loadDocumentsFromNodeArray = (result, options, cb) ->
       data.push item[1]
     if options.where
       loadDocumentsWithConditions(data, options.where, options, cb)
-      # console.log ids
-      # console.log 'where', { $and: [ { _id: { $in: ids } } , options.where ] }
-      # mongoose.find({ $and: [ { _id: { $in: ids } } , options.where ] }, cb)
     else
       cb(err,data)
 
@@ -163,5 +172,9 @@ getModelByCollectionName = (collectionName, mongoose) ->
       name = models[nameOfModel].modelName
   name
 
+getCollectionByCollectionName = (collectionName, mongoose) ->
+  modelName = getModelByCollectionName(collectionName, mongoose)
+  mongoose.models[modelName] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
 
-module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName}
+
+module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName}

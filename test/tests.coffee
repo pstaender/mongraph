@@ -227,12 +227,6 @@ describe "Mongraph", ->
           expect(err).to.be null
           done()
 
-      it 'expects to get incoming relationships+documents from collection `people`', (done) ->
-        alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
-          expect(relationships).to.have.length 1
-          expect(relationships[0].from.name).to.be 'zoe'
-          done()
-
       it 'expects to get incoming relationships+documents with where condition (name starts with uppercase)', (done) ->
         alice.outgoingRelationships '*', { where: { name: /^[A-Z]/ } }, (err, relationships) ->
           expect(relationships).to.have.length 2
@@ -242,20 +236,19 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'Bar', 'Pub' )
           done()
 
-# it 'expects to get all relationships from specific collection', (done) ->
-#         alice.allRelationships '', { collection: 'locations' }, (err, found) ->
-#           console.log found
-#           # for doc in found
-#           #   console.log doc.data
-#           done()
-
     describe '#incomingRelationships()', ->
 
-      it 'expects that alice is known by zoe', (done) ->
+      it 'expects that alice is only known by zoe', (done) ->
         alice.incomingRelationships 'knows', (err, result) ->
           expect(err).to.be(null)
           expect(result).to.have.length 1
           expect(result[0].data.since).be.equal 'months'
+          done()
+
+      it 'expects to get incoming relationships+documents from collection `people`', (done) ->
+        alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
+          expect(relationships).to.have.length 1
+          expect(relationships[0].from.name).to.be 'zoe'
           done()
 
     describe '#outgoingRelationships()', ->
@@ -282,6 +275,12 @@ describe "Mongraph", ->
           expect(path).to.have.length 3
           expect(path[0].fullname).to.be.equal 'alice a.'
           done()
+
+      it 'expects to get a mongoose document with conditions', (done) ->
+        alice.shortestPathTo zoe, 'knows', { where: { name: /a/ } }, (err, path) ->
+          console.log path
+          done()
+
 
   describe 'Neo4j::Node', ->
 
