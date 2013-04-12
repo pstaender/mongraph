@@ -37,9 +37,9 @@ zoe     = new Person(name: "Zoe")
 alice.save -> bob.save -> charles.save -> zoe.save ->
   # stored
   alice.getNode (err, aliceNode) -> bob.getNode (err, bobNode) -> charles.getNode (err, charlesNode) -> zoe.getNode (err, zoeNode) ->
-    alice.createRelationshipTo bob, 'knows', (err, relation) -> alice.getNode (err, node) ->
+    alice.createRelationshipTo bob, 'knows', (err, relation) ->
       print "#{alice.name} -> #{bob.name}"
-      bob.createRelationshipTo charles, 'knows', (err, relation) -> bob.getNode (err, node) ->
+      bob.createRelationshipTo charles, 'knows', (err, relation) ->
         print "#{bob.name} -> #{charles.name}"
         bob.createRelationshipTo zoe, 'knows', (err, relation) ->
           print "#{bob.name} -> #{zoe.name}"
