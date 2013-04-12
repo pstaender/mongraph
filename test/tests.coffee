@@ -217,7 +217,7 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'alice', 'bob' )
           done()
 
-      it 'expects to get outgoing relationships with documents from collection `location`', (done) ->
+      it 'expects to get outgoing relationships+documents from collection `location`', (done) ->
         alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships) ->
           data = {}
           for relationship in relationships
@@ -227,10 +227,19 @@ describe "Mongraph", ->
           expect(err).to.be null
           done()
 
-      it 'expects to get incoming relationships with documents from collection `people`', (done) ->
+      it 'expects to get incoming relationships+documents from collection `people`', (done) ->
         alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
           expect(relationships).to.have.length 1
           expect(relationships[0].from.name).to.be 'zoe'
+          done()
+
+      it 'expects to get incoming relationships+documents with where condition (name starts with uppercase)', (done) ->
+        alice.outgoingRelationships '*', { where: { name: /^[A-Z]/ } }, (err, relationships) ->
+          expect(relationships).to.have.length 2
+          data = {}
+          for relationship in relationships
+            data[relationship.to.name] = true
+          expect(data).to.only.have.keys( 'Bar', 'Pub' )
           done()
 
 # it 'expects to get all relationships from specific collection', (done) ->

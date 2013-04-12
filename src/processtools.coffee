@@ -45,7 +45,6 @@ loadDocumentsWithConditions = (documents, conditions, options, cb) ->
     collections[collectionName] ?= []
     collections[collectionName].push(doc)
 
-  console.log collections#documents.getCollection(), conditions
   cb(new Error('Not implemented yet'), null)
 
 
@@ -73,6 +72,8 @@ loadDocumentsFromNodeArray = (result, options, cb) ->
     else
       cb(err,data)
 
+# TODO: Merge relationships and node loading documents together
+# TODO: shrink redundant code
 loadDocumentsFromArray = (array, options, cb) ->
   {options, cb} = sortOptionsAndCallback(options, cb)
   mongoose = options.mongodb
@@ -93,11 +94,12 @@ loadDocumentsFromArray = (array, options, cb) ->
 
         # to side
         {collectionName, _id} = _extractCollectionAndId(relation.data._to)
-        if not specificCollection or specificCollection is collectionName and options.direction = 'incoming'
+        if not specificCollection or ( specificCollection is collectionName and options.direction = 'incoming' )
           id = getObjectIdFromString(_id)
+          condition = if options.where and options.direction isnt 'incoming' then { $and: [ { _id: id } , options.where ] } else { _id: id }
           callbackTo = join.add()
           doPush = true
-          mongoose.collection(collectionName).findOne { _id: id } , (err, doc) ->
+          mongoose.collection(collectionName).findOne condition , (err, doc) ->
             relation.to = doc
             callbackTo(err, relation)
 
@@ -105,9 +107,10 @@ loadDocumentsFromArray = (array, options, cb) ->
         {collectionName, _id} = _extractCollectionAndId(relation.data._from)
         if not specificCollection or specificCollection is collectionName and options.direction = 'outgoing'
           id = getObjectIdFromString(_id)
+          condition = if options.where and options.direction isnt 'outgoing' then { $and: [ { _id: id } , options.where ] } else { _id: id }
           callbackFrom = join.add()
           doPush = true
-          mongoose.collection(collectionName).findOne { _id: id } , (err, doc) ->
+          mongoose.collection(collectionName).findOne condition , (err, doc) ->
             relation.from = doc
             callbackFrom(err, relation)
 
@@ -115,7 +118,14 @@ loadDocumentsFromArray = (array, options, cb) ->
       else
         cb(new Error('We have no relationship here'), null)
   join.when ->
-    cb(null, results, options.graphResultset)
+    # sort out results that do not fit the where query
+    if options.where
+      finalResults = []
+      for result in results
+        finalResults.push(result) if result.from and result.to
+    else
+      finalResults = results
+    cb(null, finalResults, options.graphResultset)
 
 # load record(s) by id from a given array
 loadDocumentsFromRelationshipArray = (graphResultset, options, cb) ->
