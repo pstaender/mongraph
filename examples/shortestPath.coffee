@@ -25,14 +25,14 @@ mongraph.init
 # Define model
 Person = mongoose.model("Person", name: String)
 
+# Ensure that we'll always get mongoose created Documents
+mongraph.registerModels(mongoose)
+
 # Example data
 alice   = new Person(name: "Alice")
 bob     = new Person(name: "Bob")
 charles = new Person(name: "Charles")
 zoe     = new Person(name: "Zoe")
-
-# Ensure that we'll always get mongoose created Documents
-mongraph.registerModels(mongoose)
 
 # The following shall demonstrate how to work with Documents and it's corresponding Nodes
 # Best practice would be to manage this with joins or streamlines instead of seperate callbacks

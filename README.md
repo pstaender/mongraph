@@ -62,6 +62,9 @@ mongraph.init
 # Define model
 Person = mongoose.model("Person", name: String)
 
+# Ensure that we'll always get mongoose created Documents
+mongraph.registerModels(mongoose)
+
 # Example data
 alice   = new Person(name: "Alice")
 bob     = new Person(name: "Bob")
