@@ -1,3 +1,5 @@
+# TODO: make tests mor independent: beforeEach -> delete all relations
+
 expect        = require('expect.js')
 mongoose      = require('mongoose')
 neo4j         = require('neo4j')
@@ -6,7 +8,7 @@ mongraph      = require('../src/mongraph')
 describe "Mongraph", ->
 
   # schemas and data objects
-  Person = alice = bob = zoe = null
+  Person = alice = bob = charles = zoe = null
   # handler for connections
   mongo  = graph = null
   # regex for validating objectid
@@ -33,15 +35,16 @@ describe "Mongraph", ->
 
     Person = mongoose.model "Person", schema
 
-    alice = new Person(name: "alice")
-    bob   = new Person(name: "bob")
-    zoe   = new Person(name: "zoe")
+    alice   = new Person(name: "alice")
+    bob     = new Person(name: "bob")
+    charles = new Person(name: "charles")
+    zoe     = new Person(name: "zoe")
 
     # remove all previous persons
     Person.collection.remove (removeCollectionErr) ->
       # define example schema for person
-      alice.save (aliceSavingErr) -> bob.save (bobSavingErr) -> zoe.save (zoeSavingErr) ->
-        done(aliceSavingErr or bobSavingErr or zoeSavingErr or removeCollectionErr)
+      alice.save (aliceSavingErr) -> bob.save (bobSavingErr) -> charles.save (charlesSavingErr) -> zoe.save (zoeSavingErr) ->
+        done(aliceSavingErr or bobSavingErr or zoeSavingErr or charlesSavingErr or removeCollectionErr)
 
   describe 'processtools', ->
 
@@ -211,6 +214,35 @@ describe "Mongraph", ->
           expect(result).to.have.length 2
           done()
 
+    describe '#shortestPath()', ->
+
+      it 'expects to get the shortest path between two documents', (done) ->
+        # delete all relationships between alice, bob + zoe
+        # longest:  alice -> bob -> charles -> zoe
+        # shortest: alice -> bob -> zoe
+        alice.removeRelationships 'knows', (err1) -> bob.removeRelationships 'knows', (err2) -> zoe.removeRelationships 'knows', (err3) ->
+          expect(err1).to.be null
+          expect(err2).to.be null
+          expect(err3).to.be null
+          alice.createRelationshipTo bob, 'knows', (err, relation) ->  
+            expect(relation).to.be.an 'object'
+            expect(err).to.be null
+            bob.createRelationshipTo charles, 'knows', (err, relation) ->
+              expect(relation).to.be.an 'object'
+              expect(err).to.be null
+              bob.createRelationshipTo zoe, 'knows', (err, relation) ->
+                expect(relation).to.be.an 'object'
+                expect(err).to.be null
+                charles.createRelationshipTo zoe, 'knows', (err, relation) ->
+                  expect(relation).to.be.an 'object'
+                  expect(err).to.be null
+                  alice.shortestPathTo zoe, 'knows', (err, path) ->
+                    expect(path).to.be.an 'object'
+                    expect(err).to.be null
+                    expectedPath = [ alice._id, bob._id, zoe._id ]
+                    for node, i in path
+                      expect(String(node._id)).be.equal String(expectedPath[i])
+                    done()
 
   describe 'Neo4j::Node', ->
 
@@ -240,6 +272,7 @@ describe "Mongraph", ->
             expect(doc).to.be.an 'object'
             expect(String(doc._id)).to.be.equal (String) alice._id
             done()
+
 
 
 

@@ -12,7 +12,8 @@
   "scripts": {
     "test": "mocha",
     "build": "coffee -cbo lib src",
-    "example": "coffee -cbo lib src && node examples/example.js"
+    "example": "coffee -cbo lib src && node examples/example.js",
+    "documentation": "docco ./src/*.coffee"
   },
   "devDependencies": {
     "coffee-script": "latest",
@@ -20,7 +21,8 @@
     "expect.js": ">= 0.2.0",
     "should": ">= 1.2.2",
     "mongoose": ">=3.6",
-    "neo4j": ">=0.2"
+    "neo4j": ">=0.2",
+    "docco": "latest"
   },
   "dependencies": {
     "underscore.string": ">= 2.3",

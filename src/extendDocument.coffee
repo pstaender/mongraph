@@ -1,5 +1,13 @@
+# ### Extend Document
+#
+# This models extends the mongodb/mongoose Document with:
+# * allows creating, deleting and querying all kind of incoming and outgoing relationships
+# * native queries on neo4j with option to load Documents by default
+# * connects each Document with corresponding Node in neo4j
+#
+# TODO: check that we always get Documents as mongoose models
+
 processtools = require('./processtools')
-_s = require('underscore.string')
 
 module.exports = (mongoose, graphdb, globalOptions) ->
 
@@ -7,11 +15,15 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   node = graphdb.createNode()
 
+  #### Can be used to make native queries on neo4j
+  # TODO: helpful / best practice? not sure... -> instead you should query directly via neo4j module
   Document::_graphdb = {
     # handler for using for custom queries
     db: graphdb
   }
 
+  #### Private method to query neo4j directly
+  #### options -> see Document::queryRelationships
   _queryGraphDB = (cypher, options = {}, cb) ->
     options.loadDocuments ?= true
     # TODO: "mongoose.connection" doesn't work as expected
@@ -40,7 +52,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         # prevent `undefined is not a function` if no cb is given
         cb(err, map) if typeof cb is 'function'
 
-  ## Find equivalent node to document 
+  #### Loads the equivalent node to this Document 
   Document::findEquivalentNode = (cb, doCreateIfNotExists = false) ->
     doc = @
     collectionName = doc.constructor.collection.name
@@ -69,14 +81,14 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       else        
         cb(null, node) if typeof cb is 'function'
 
-  # Find or create equivalent node to document, recommend to use this
+  #### Finds or create equivalent Node to this Document
   Document::findOrCreateEquivalentNode = (cb) -> @findEquivalentNode(cb, true)
   
-  ## Shortcut -> findOrCreateEquivalentNode
-  Document::getNode = (cb) ->
-    @findOrCreateEquivalentNode(cb)
+  #### Recommend to use this method instead of `findOrCreateEquivalentNode`
+  #### Shortcutmethod -> findOrCreateEquivalentNode
+  Document::getNode = Document::findOrCreateEquivalentNode
 
-  ## Create a relationship from current document to a given document
+  #### Creates a relationship from this Document to a given document
   Document::createRelationshipTo = (doc, kindOfRelationship, attributes = {}, cb) ->
     # assign cb + attribute arguments
     if typeof attributes is 'function'
@@ -101,11 +113,13 @@ module.exports = (mongoose, graphdb, globalOptions) ->
           from.createRelationshipTo to, kindOfRelationship, attributes, cb
         else
           cb(fromErr or toErr, null) if typeof cb is 'function'
-
+  
+  #### Creates an incoming relationship from a given Documents to this Document
   Document::createRelationshipFrom = (doc, kindOfRelationship, attributes = {}, cb) ->
     # alternate directions: doc -> this
     doc.createRelationshipTo(@, kindOfRelationship, attributes, cb)
 
+  #### Creates a bidrectional relationship between two Documents
   Document::createRelationshipBetween = (doc, kindOfRelationship, attributes = {}, cb) ->
     # both directions
     self = @
@@ -118,14 +132,25 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         found.push(second)
         cb(err, found) if typeof cb is 'function'
 
+  #### Query the graphdb with cypher, current Document is not relevant for the query 
   Document::queryGraph = (chypherQuery, options, cb) ->
     doc = @
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     options.mongodbConnection = doc.db
     _queryGraphDB(chypherQuery, options, cb)
 
-  
+  #### Allows extended querying to the graphdb and loads found Documents
+  #### (is used by many methods for loading incoming + outgoing relationships) 
+  # @param kindOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
+  # @param options = {}
+  # (first value is default)
+  # * direction (both|incoming|outgoing)
+  # * action: (RETURN|DELETE|...) (all other actions wich can be used in cypher)
+  # * processPart: (relationship|path|...) (depends on the result you expect from our query)
+  # * loadDocuments: (true|false)
+  # * endNode: '' (can be a node object or an nodeID)
   Document::queryRelationships = (kindOfRelationship, options, cb) ->
+    _s = require('underscore.string')
     # options can be a cypher query as string
     options = { query: options } if typeof options is 'string'
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
@@ -164,29 +189,49 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         options.mongodbConnection ?= doc.db
         _queryGraphDB(cypher, options, cb)
 
+  #### Loads incoming and outgoing relationships
   Document::allRelationships = (kindOfRelationship, cb) ->
     @queryRelationships(kindOfRelationship, { direction: 'both' }, cb)
 
+  #### Loads incoming relationships
   Document::incomingRelationships = (kindOfRelationship, cb) ->
     @queryRelationships(kindOfRelationship, { direction: 'incoming' }, cb)
 
+  #### Loads outgoing relationships
   Document::outgoingRelationships = (kindOfRelationship, cb) ->
     @queryRelationships(kindOfRelationship, { direction: 'outgoing' }, cb)
   
-
+  #### Remove outgoing relationships to a specific Document
   Document::removeRelationshipsTo = (doc, kindOfRelationship, cb, direction = 'outgoing') ->
     from = @
     doc.getNode (nodeErr, endNode) ->
       return cb(nodeErr, endNode) if nodeErr
       from.queryRelationships kindOfRelationship, { direction: direction, action: 'DELETE', endNode: endNode.id }, cb
 
+  #### Removes incoming relationships to a specific Document
+  # TODO: testing
   Document::removeRelationshipsFrom = (doc, kindOfRelationship, cb, direction = 'incoming') ->
     @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
 
+  #### Removes incoming ad outgoing relationships between two Documents
+  # TODO: testing
   Document::removeRelationshipsBetween = (doc, kindOfRelationship, cb, direction = 'both') ->
     @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
 
+  #### Removes incoming and outgoing relationships to all Documents (useful bevor deleting a node/document)
+  # TODO: testing
   Document::removeRelationships = (kindOfRelationship, cb, direction = 'both') ->
     @queryRelationships kindOfRelationship, { action: 'DELETE', direction: direction }, cb
 
-
+  Document::shortestPathTo = (doc, kindOfRelationship, cb) ->
+    from = @
+    to = doc
+    from.getNode (errFrom, fromNode) -> to.getNode (errTo, toNode) ->
+      return cb(new Error("Problem(s) getting from and/or to node")) if errFrom or errTo or not fromNode or not toNode
+      levelDeepness = 15
+      query = """
+        START a = node(#{fromNode.id}), b = node(#{toNode.id}) 
+        MATCH p = shortestPath( a-[*..#{levelDeepness}]->b )
+        RETURN p;
+      """
+      from.queryGraph(query, cb)

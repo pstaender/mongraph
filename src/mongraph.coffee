@@ -6,21 +6,20 @@ constructorNameOf = processtools.constructorNameOf
 
 config = {}
 
-useBidirectionalRelations = (trueOrFalse) ->
-  config.options.relationships.bidirectional = (Boolean) trueOrFalse
+init = (options) ->
 
-init = (options = {}) ->
+  options = {} if typeof options isnt 'object'
 
   # set default options
   # TODO: extend default options
   config.options  = options
-  config.mongoose = options?.mongoose
-  config.graphdb  = options?.neo4j
+  config.mongoose = options.mongoose
+  config.graphdb  = options.neo4j
   config.options.overwriteProtypeFunctions ?= false
   config.options.storeDocumentInGraphDatabase ?= false # TODO: implement
   config.options.cacheNodes ?= true # TODO: implement
-  config.options.loadMongoDBRecords = true # TODO: implement
-  config.options.loadMongoosePlugin = true
+  config.options.loadMongoDBRecords ?= true
+  config.options.extendSchemaWithMongoosePlugin ?= true
   config.options.relationships ?= {}
   config.options.relationships.storeTimestamp = true # is always true
   config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
@@ -33,10 +32,10 @@ init = (options = {}) ->
   if config.options.overwriteProtypeFunctions isnt true
     # Check that we don't override existing functions
     # throw exception if so
-    # Monogoose
+    # Check Monogoose
     for functionName in [ "getRelationships", "createRelationshipTo", "deleteRelationshipTo", "getNode", "findEquivalentNode", "findOrCreateEquivalentNode", "getRelatedDocuments", "_graph" ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof config.mongoose.Document::[functionName] is 'undefined'
-    # Neo4j
+    # Check Neo4j
     node = config.graphdb.createNode()
     for functionName in [ "getCollectionName", "getMongoId" ]
       throw new Error("Will not override neo4j::Node.prototype.#{functionName}") unless typeof node.constructor::[functionName] is 'undefined'
@@ -51,8 +50,8 @@ init = (options = {}) ->
   
   # Load plugin and extend schemas with middleware
   # -> http://mongoosejs.com/docs/plugins.html
-  config.mongoose.plugin(mongraphMongoosePlugin) if config.options.loadMongoosePlugin
+  config.mongoose.plugin(mongraphMongoosePlugin) if config.options.extendSchemaWithMongoosePlugin
 
 
-module.exports = {init,config,processtools,useBidirectionalRelations}
+module.exports = {init,config,processtools}
 
