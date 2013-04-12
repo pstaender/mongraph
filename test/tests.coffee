@@ -40,6 +40,11 @@ describe "Mongraph", ->
     charles = new Person(name: "charles")
     zoe     = new Person(name: "zoe")
 
+    mongraph.init {
+      neo4j: graph
+      mongoose: mongoose
+    }
+
     # remove all previous persons
     Person.collection.remove (removeCollectionErr) ->
       # define example schema for person

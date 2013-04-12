@@ -106,7 +106,7 @@ produces the following output:
   Shortest Path: Alice knows Zoe through Bob
 ```
 
-This should demonstrate how to query graphdb and get as result mongodb documents. It exists a method Document::shortestPathTo(doc) for this need.
+This should demonstrate how to query graphdb and get as result mongodb documents. It exists a method `Document::shortestPathTo(doc)` for this need.
 
 More examples in `test/tests.coffee` and `examples/`
 
@@ -122,6 +122,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### TODO's
 
-* shortestPath method (nice to have)
+* Load Document's models from Nodes (currently native on mongodb)
 * caching of loaded nodes and documents
 * deeper testing + better code coverage

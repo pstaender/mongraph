@@ -18,8 +18,9 @@ module.exports = (graphdb, mongoose, options) ->
     return cb("No node object given", cb) unless node?._data?.data
     _id =  new processtools.getObjectIdFromString(node.getMongoId())
     collectionName = node.getCollectionName()
-    cb("No mongodb connection -> init({..., >>mongodb: mongodbconnection<<, ...", null) unless mongoose and typeof cb is 'function'
+    cb(new Error("No cb given", null)) if typeof cb isnt 'function'
     # we need to query the collection natively here
+    # TODO: find an elegant way to use models for this instead of native connections
     collection = mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
     collection.findOne { _id: _id }, cb
 
