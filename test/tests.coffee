@@ -30,20 +30,22 @@ describe "Mongraph", ->
       mongoose: mongoose
     }
     
-    # define model
-    schema = name: String
+    # Define model
+    schema = new mongoose.Schema(name: String)
+    
+    # Used for checking that we are working with the mongoose model and not with native mongodb objects
+    schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
 
     Person = mongoose.model "Person", schema
+
+    # Ensure that we'll always get mongoose created Documents
+    # Optional, but strongly recommend to do it
+    mongraph.registerModels(mongoose)
 
     alice   = new Person(name: "alice")
     bob     = new Person(name: "bob")
     charles = new Person(name: "charles")
     zoe     = new Person(name: "zoe")
-
-    mongraph.init {
-      neo4j: graph
-      mongoose: mongoose
-    }
 
     # remove all previous persons
     Person.collection.remove (removeCollectionErr) ->
@@ -237,6 +239,12 @@ describe "Mongraph", ->
                     for node, i in path
                       expect(String(node._id)).be.equal String(expectedPath[i])
                     done()
+      
+      it 'expects to get a mongoose document instead of a native mongodb document', (done) ->
+        alice.shortestPathTo zoe, 'knows', (err, path) ->
+          expect(path).to.have.length 3
+          expect(path[0].fullname).to.be.equal 'alice a.'
+          done()
 
   describe 'Neo4j::Node', ->
 

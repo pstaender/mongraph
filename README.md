@@ -122,6 +122,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### TODO's
 
-* Load Document's models from Nodes (currently native on mongodb)
-* caching of loaded nodes and documents
+* load Document's models from Nodes (currently native on mongodb)
+* caching of loaded Nodes and Documents
 * deeper testing + better code coverage

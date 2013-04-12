@@ -16,18 +16,19 @@
     "documentation": "docco ./src/*.coffee"
   },
   "devDependencies": {
-    "coffee-script": "latest",
-    "mocha": ">= 1.7.0",
-    "expect.js": ">= 0.2.0",
-    "should": ">= 1.2.2",
-    "mongoose": ">=3.6",
-    "neo4j": ">=0.2",
-    "docco": "latest"
+    "coffee-script": "~1.6",
+    "mocha": "~1.9",
+    "expect.js": "~0.2",
+    "should": "~1.2",
+    "mongoose": "~3.6",
+    "neo4j": "~0.2",
+    "docco": "~0.6"
   },
   "dependencies": {
-    "underscore.string": ">= 2.3",
-    "join": ">= 2.3",
-    "mongodb": ">= 1.2"
+    "underscore.string": "~2.3",
+    "underscore": "~1.4",
+    "join": "~2.3",
+    "mongodb": "~1.2"
   },
   "licenses" : {
     "type" : "MIT"

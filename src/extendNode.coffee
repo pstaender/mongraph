@@ -20,8 +20,8 @@ module.exports = (graphdb, mongoose, options) ->
     collectionName = node.getCollectionName()
     cb(new Error("No cb given", null)) if typeof cb isnt 'function'
     # we need to query the collection natively here
-    # TODO: find an elegant way to use models for this instead of native connections
-    collection = mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
+    # TODO: find a more elegant way to access models instead of needing the "registerModels" way...
+    collection = mongoose.models[options.collectionToModel?[collectionName]] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
     collection.findOne { _id: _id }, cb
 
   #### Loads corresponding document from given neo4j url 

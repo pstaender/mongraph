@@ -1,21 +1,40 @@
 processtools = require('./processtools')
 mongraphMongoosePlugin = require('./mongraphMongoosePlugin')
+_ = require('underscore')
 
 # shortcut
 constructorNameOf = processtools.constructorNameOf
 
-config = {}
+# bare config 
+config =
+  options:
+    collectionToModel: {}
+
+# Register models
+registerModels = (mongoose) ->
+  if constructorNameOf(mongoose) is 'Mongoose'
+    models = mongoose.models
+  else unless mongoose
+    throw new Error('Expecting a mongoose- or a mongoose.models-object for registration')
+  else
+    # we assume that we have mongoose.models here
+    models = mongoose
+  for modelName of models
+    # add collectionName for each model
+    {collection,modelName} = models[modelName]
+    # register with collection and model name (easier to find and avoiding Person -> people problem)
+    config.options.collectionToModel[collection.name] = modelName
+  config.options.collectionToModel
 
 init = (options) ->
 
   options = {} if typeof options isnt 'object'
 
   # set default options
-  # TODO: extend default options
-  config.options  = options
+  _.extend(config.options, options)
   config.mongoose = options.mongoose
   config.graphdb  = options.neo4j
-  config.options.overwriteProtypeFunctions ?= true
+  config.options.overwriteProtypeFunctions ?= false
   config.options.storeDocumentInGraphDatabase ?= false # TODO: implement
   config.options.cacheNodes ?= true # TODO: implement
   config.options.loadMongoDBRecords ?= true
@@ -53,5 +72,5 @@ init = (options) ->
   config.mongoose.plugin(mongraphMongoosePlugin) if config.options.extendSchemaWithMongoosePlugin
 
 
-module.exports = {init,config,processtools}
+module.exports = {init,config,processtools,registerModels}
 
