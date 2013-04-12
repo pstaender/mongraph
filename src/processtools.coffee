@@ -36,9 +36,24 @@ getObjectIDsAsArray = (mixed) ->
     ids = [ getObjectIDAsString(mixed) ]
   ids
 
-loadDocumentsFromNodeArray = (result, cb) ->
+loadDocumentsWithConditions = (documents, conditions, options, cb) ->
+  {options,cb} = sortOptionsAndCallback(options,cb)
+  mongoose = options.mongodb
+  collections = {}
+  for doc in documents
+    collectionName = doc.constructor.collection.name
+    collections[collectionName] ?= []
+    collections[collectionName].push(doc)
+
+  console.log collections#documents.getCollection(), conditions
+  cb(new Error('Not implemented yet'), null)
+
+
+loadDocumentsFromNodeArray = (result, options, cb) ->
+  {options, cb} = sortOptionsAndCallback(options,cb)
+  mongoose = options.mongodb
   arrayWithNodes = result[0]?.nodes
-  return cb("Couldn't find any nodes to process", result) unless arrayWithNodes
+  return cb(new Error("Couldn't find any nodes to process"), result) unless arrayWithNodes
   join = Join.create()
   for node, i in arrayWithNodes
     if node.id
@@ -50,12 +65,64 @@ loadDocumentsFromNodeArray = (result, cb) ->
     for item in arguments
       err = item[0]
       data.push item[1]
-    cb(err,data)
+    if options.where
+      loadDocumentsWithConditions(data, options.where, options, cb)
+      # console.log ids
+      # console.log 'where', { $and: [ { _id: { $in: ids } } , options.where ] }
+      # mongoose.find({ $and: [ { _id: { $in: ids } } , options.where ] }, cb)
+    else
+      cb(err,data)
+
+loadDocumentsFromArray = (array, options, cb) ->
+  {options, cb} = sortOptionsAndCallback(options, cb)
+  mongoose = options.mongodb
+  specificCollection = null
+  # only sort with collection if we have one direction and a collection given
+  if options.direction isnt 'both' and options.collection
+    specificCollection = options.collection or null
+  join = Join.create()
+  results = []
+  for record, i in array
+    do (i, record) ->
+      # Ensure that we have a relationship record here
+      if record.data._to and record.data._from
+        relation = record
+        doPush = false
+        # Load documents from start and end node
+        # will be stored in relation.from and relation.to
+
+        # to side
+        {collectionName, _id} = _extractCollectionAndId(relation.data._to)
+        if not specificCollection or specificCollection is collectionName and options.direction = 'incoming'
+          id = getObjectIdFromString(_id)
+          callbackTo = join.add()
+          doPush = true
+          mongoose.collection(collectionName).findOne { _id: id } , (err, doc) ->
+            relation.to = doc
+            callbackTo(err, relation)
+
+        # from side
+        {collectionName, _id} = _extractCollectionAndId(relation.data._from)
+        if not specificCollection or specificCollection is collectionName and options.direction = 'outgoing'
+          id = getObjectIdFromString(_id)
+          callbackFrom = join.add()
+          doPush = true
+          mongoose.collection(collectionName).findOne { _id: id } , (err, doc) ->
+            relation.from = doc
+            callbackFrom(err, relation)
+
+        results.push(relation) if doPush
+      else
+        cb(new Error('We have no relationship here'), null)
+  join.when ->
+    cb(null, results, options.graphResultset)
 
 # load record(s) by id from a given array
-loadDocumentsFromRelationshipArray = (mongodb, graphResultset, cb) ->
-  return cb('Need db connection as argument', null, graphResultset) if constructorNameOf(mongodb) isnt 'NativeConnection'
-  return cb('No Array given', null, graphResultset) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
+loadDocumentsFromRelationshipArray = (graphResultset, options, cb) ->
+  {options, cb} = sortOptionsAndCallback(options,cb)
+  mongoose = options.mongodb
+  return cb(new Error('Need db connection as argument'), null, graphResultset) if constructorNameOf(mongoose) isnt 'NativeConnection'
+  return cb(new Error('No Array given'), null, graphResultset) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
   # sort out all non relationship objects
   relations = []
   for relation, i in graphResultset
@@ -65,27 +132,11 @@ loadDocumentsFromRelationshipArray = (mongodb, graphResultset, cb) ->
   # we pass it as 3rd argument so that it can be processed some other way
   # TODO: distinguish between relationships, nodes + paths as result
   return cb(null,null,graphResultset) unless relations.length > 0
-  join = Join.create()
   # We have to query each record, because they can be stored in different collections
   # TODO: presort collections and do "where in []" queries for each collection
-  for relation, i in relations
-    do (i, relation) ->
-      # Load documents from start and end node
-      # will be stored in relation.from and relation.to
-      {collectionName, _id} = _extractCollectionAndId(relation.data._to)
-      id = getObjectIdFromString(_id)
-      callbackTo = join.add()
-      mongodb.collection(collectionName).findOne { _id: id } , (err, doc) ->
-        relation.to = doc
-        callbackTo(err, relation)
-      {collectionName, _id} = _extractCollectionAndId(relation.data._from)
-      id = getObjectIdFromString(_id)
-      callbackFrom = join.add()
-      mongodb.collection(collectionName).findOne { _id: id } , (err, doc) ->
-        relation.from = doc
-        callbackFrom(err, relation)
-  join.when ->
-    cb(null, relations, graphResultset)
+  options.graphResultset = graphResultset
+  loadDocumentsFromArray(relations, options, cb)
+  
 
 getModelByCollectionName = (collectionName, mongoose) ->
   if constructorNameOf(mongoose) is 'Mongoose'

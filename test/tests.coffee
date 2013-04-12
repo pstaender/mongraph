@@ -8,7 +8,7 @@ mongraph      = require('../src/mongraph')
 describe "Mongraph", ->
 
   # schemas and data objects
-  Person = alice = bob = charles = zoe = null
+  Person = Location = alice = bob = charles = zoe = bar = pub = null
   # handler for connections
   mongo  = graph = null
   # regex for validating objectid
@@ -36,18 +36,44 @@ describe "Mongraph", ->
     # Used for checking that we are working with the mongoose model and not with native mongodb objects
     schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
 
-    Person = mongoose.model "Person", schema
+    Person   = mongoose.model "Person", schema
+    Location = mongoose.model "Location", mongoose.Schema(name: String, lon: Number, lat: Number)
 
     alice   = new Person(name: "alice")
     bob     = new Person(name: "bob")
     charles = new Person(name: "charles")
     zoe     = new Person(name: "zoe")
 
+    bar     = new Location(name: "Bar", lon: 52.51, lat: 13.49)
+    pub     = new Location(name: "Pub", lon: 40, lat: 10)
+
     # remove all previous persons
     Person.collection.remove (removeCollectionErr) ->
       # define example schema for person
       alice.save (aliceSavingErr) -> bob.save (bobSavingErr) -> charles.save (charlesSavingErr) -> zoe.save (zoeSavingErr) ->
-        done(aliceSavingErr or bobSavingErr or zoeSavingErr or charlesSavingErr or removeCollectionErr)
+        bar.save (barSavingErr) -> pub.save (pubSavingErr) ->
+          done(aliceSavingErr or bobSavingErr or zoeSavingErr or charlesSavingErr or removeCollectionErr or barSavingErr or pubSavingErr)
+
+  beforeEach (done) ->
+    # remove all relationships
+    alice.removeRelationships '*', -> bob.removeRelationships '*', -> zoe.removeRelationships '*', ->
+      bar.removeRelationships '*', -> pub.removeRelationships '*', ->
+        # **knows**
+        # alice -> bob -> charles -> zoe
+        # bob -> zoe
+        # alice <- zoe
+        #
+        # **visits*
+        # alice -> bar
+        # alice -> pub
+        alice.createRelationshipTo bob, 'knows', { since: 'years' }, ->
+          alice.createRelationshipFrom zoe, 'knows', { since: 'months' }, ->
+            bob.createRelationshipTo charles, 'knows', ->
+              charles.createRelationshipTo zoe, 'knows', ->
+                bob.createRelationshipTo zoe, 'knows', ->
+                  alice.createRelationshipTo bar, 'visits', ->
+                    alice.createRelationshipTo pub, 'visits', ->
+                      done()
 
   describe 'processtools', ->
 
@@ -163,22 +189,12 @@ describe "Mongraph", ->
 
     describe '#removeRelationships', ->
 
-      it 'expect to remove all relationship of specific kind', (done) ->
-        zoe.createRelationshipTo bob, 'follows', (err, relationship) ->
-          expect(err).to.be null
-          zoe.createRelationshipTo alice, 'follows', (err, relationship) ->
-            expect(err).to.be null
-            # zoe follows bob and alice
-            zoe.allRelationships 'follows', (err, relationships) ->
-              expect(err).to.be null
-              expect(relationships).to.have.length 2
-              # zoe follows nobody
-              zoe.removeRelationships 'follows', (err, relationships) ->
-                expect(err).to.be null
-                zoe.allRelationships 'follows', (err, relationships) ->
-                  expect(err).to.be null
-                  expect(relationships).to.have.length 0
-                  done()
+      it 'expect to remove all relationship of one type', (done) ->
+        alice.allRelationships 'knows', (err, relationships) ->
+          expect(relationships?.length).be.above 0
+          alice.removeRelationships 'knows', (err, relationships) ->
+            expect(relationships).to.have.length 0
+            done()
 
     describe '#allRelationships()', ->
 
@@ -198,21 +214,45 @@ describe "Mongraph", ->
           data = {}
           for relationship in relationships
             data[relationship.to.name] = true
-          expect(data).to.only.have.keys( 'zoe', 'bob' )
+          expect(data).to.only.have.keys( 'alice', 'bob' )
           done()
+
+      it 'expects to get outgoing relationships with documents from collection `location`', (done) ->
+        alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships) ->
+          data = {}
+          for relationship in relationships
+            data[relationship.to.name] = true
+          expect(data).to.only.have.keys( 'Bar', 'Pub' )
+          expect(relationships).to.have.length 2
+          expect(err).to.be null
+          done()
+
+      it 'expects to get incoming relationships with documents from collection `people`', (done) ->
+        alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
+          expect(relationships).to.have.length 1
+          expect(relationships[0].from.name).to.be 'zoe'
+          done()
+
+# it 'expects to get all relationships from specific collection', (done) ->
+#         alice.allRelationships '', { collection: 'locations' }, (err, found) ->
+#           console.log found
+#           # for doc in found
+#           #   console.log doc.data
+#           done()
 
     describe '#incomingRelationships()', ->
 
-      it 'expects that alice is not known by anybody', (done) ->
+      it 'expects that alice is known by zoe', (done) ->
         alice.incomingRelationships 'knows', (err, result) ->
           expect(err).to.be(null)
-          expect(result).to.have.length 0
+          expect(result).to.have.length 1
+          expect(result[0].data.since).be.equal 'months'
           done()
 
     describe '#outgoingRelationships()', ->
 
-      it 'expects that alice knows 2 people', (done) ->
-        alice.outgoingRelationships 'knows', (err, result) ->
+      it 'expects that alice visits 2 places', (done) ->
+        alice.outgoingRelationships 'visits', (err, result) ->
           expect(err).to.be(null)
           expect(result).to.have.length 2
           done()
@@ -220,21 +260,13 @@ describe "Mongraph", ->
     describe '#shortestPath()', ->
 
       it 'expects to get the shortest path between two documents', (done) ->
-        # delete all relationships between alice, bob + zoe
-        # longest:  alice -> bob -> charles -> zoe
-        # shortest: alice -> bob -> zoe
-        alice.removeRelationships 'knows', -> bob.removeRelationships 'knows', -> zoe.removeRelationships 'knows', ->
-          alice.createRelationshipTo bob, 'knows', ->  
-            bob.createRelationshipTo charles, 'knows', ->
-              bob.createRelationshipTo zoe, 'knows', ->
-                charles.createRelationshipTo zoe, 'knows', ->
-                  alice.shortestPathTo zoe, 'knows', (err, path) ->
-                    expect(path).to.be.an 'object'
-                    expect(err).to.be null
-                    expectedPath = [ alice._id, bob._id, zoe._id ]
-                    for node, i in path
-                      expect(String(node._id)).be.equal String(expectedPath[i])
-                    done()
+        alice.shortestPathTo zoe, 'knows', (err, path) ->
+          expect(path).to.be.an 'object'
+          expect(err).to.be null
+          expectedPath = [ alice._id, bob._id, zoe._id ]
+          for node, i in path
+            expect(String(node._id)).be.equal String(expectedPath[i])
+          done()
       
       it 'expects to get a mongoose document instead of a native mongodb document', (done) ->
         alice.shortestPathTo zoe, 'knows', (err, path) ->

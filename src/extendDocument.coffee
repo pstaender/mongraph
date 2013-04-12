@@ -24,13 +24,14 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   #### Private method to query neo4j directly
   #### options -> see Document::queryRelationships
-  _queryGraphDB = (cypher, options = {}, cb) ->
+  _queryGraphDB = (cypher, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.loadDocuments ?= true
     # TODO: "mongoose.connection" doesn't work as expected
     # but options.mongoose native connection is mandatory
     # so we must ensure that we always attach a connection from document
     # TODO: type check
-    return cb("Set 'option.mongodbConnection' with a NativeConnection to process query", null) unless processtools.constructorNameOf(options.mongodbConnection) is 'NativeConnection'
+    return cb("Set 'options.mongodbConnection' with a NativeConnection to process query", null) unless processtools.constructorNameOf(options.mongodb) is 'NativeConnection'
     graphdb.query cypher, (err, map) ->
       # add query to error if we have one, better for debugging
       # TODO: remove later or use an option switch ?!
@@ -44,10 +45,10 @@ module.exports = (mongoose, graphdb, globalOptions) ->
             # return first first property otherwise
             result[Object.keys(result)[0]]
         if processtools.constructorNameOf(data[0]) is 'Relationship'
-          processtools.loadDocumentsFromRelationshipArray options.mongodbConnection, data, cb
+          processtools.loadDocumentsFromRelationshipArray data, options, cb
         # TODO: distinguish between 'Path', 'Node' etc ...
         else
-          processtools.loadDocumentsFromNodeArray data, cb
+          processtools.loadDocumentsFromNodeArray data, options, cb
       else
         # prevent `undefined is not a function` if no cb is given
         cb(err, map) if typeof cb is 'function'
@@ -143,9 +144,9 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   #### Query the graphdb with cypher, current Document is not relevant for the query 
   Document::queryGraph = (chypherQuery, options, cb) ->
-    doc = @
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
-    options.mongodbConnection = doc.db
+    doc = @
+    options.mongodb = doc.db
     _queryGraphDB(chypherQuery, options, cb)
 
   #### Allows extended querying to the graphdb and loads found Documents
@@ -172,7 +173,6 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     # endNode can be string or node object
     options.endNode ?= ""
     options.endNode = endNode.id if typeof endNode is 'object'
-    options.loadDocuments ?= true
     doc = @
     id = processtools.getObjectIDAsString(doc)
     @getNode (nodeErr, fromNode) ->
@@ -195,23 +195,30 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       if options.dontExecute
         cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null)
       else
-        options.mongodbConnection ?= doc.db
+        options.mongodb ?= doc.db
         _queryGraphDB(cypher, options, cb)
 
   #### Loads incoming and outgoing relationships
-  Document::allRelationships = (kindOfRelationship, cb) ->
-    @queryRelationships(kindOfRelationship, { direction: 'both' }, cb)
+  Document::allRelationships = (kindOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction = 'both'
+    @queryRelationships(kindOfRelationship, options, cb)
 
   #### Loads incoming relationships
-  Document::incomingRelationships = (kindOfRelationship, cb) ->
-    @queryRelationships(kindOfRelationship, { direction: 'incoming' }, cb)
+  Document::incomingRelationships = (kindOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction = 'incoming'
+    @queryRelationships(kindOfRelationship, options, cb)
 
   #### Loads outgoing relationships
-  Document::outgoingRelationships = (kindOfRelationship, cb) ->
-    @queryRelationships(kindOfRelationship, { direction: 'outgoing' }, cb)
+  Document::outgoingRelationships = (kindOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction = 'outgoing'
+    @queryRelationships(kindOfRelationship, options, cb)
   
   #### Remove outgoing relationships to a specific Document
-  Document::removeRelationshipsTo = (doc, kindOfRelationship, cb, direction = 'outgoing') ->
+  Document::removeRelationshipsTo = (doc, kindOfRelationship, options, cb, direction = 'outgoing') ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     from = @
     doc.getNode (nodeErr, endNode) ->
       return cb(nodeErr, endNode) if nodeErr
@@ -219,20 +226,25 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   #### Removes incoming relationships to a specific Document
   # TODO: testing
-  Document::removeRelationshipsFrom = (doc, kindOfRelationship, cb, direction = 'incoming') ->
+  Document::removeRelationshipsFrom = (doc, kindOfRelationship, options, cb, direction = 'incoming') ->
+    
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
 
   #### Removes incoming ad outgoing relationships between two Documents
   # TODO: testing
-  Document::removeRelationshipsBetween = (doc, kindOfRelationship, cb, direction = 'both') ->
+  Document::removeRelationshipsBetween = (doc, kindOfRelationship, options, cb, direction = 'both') ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
 
   #### Removes incoming and outgoing relationships to all Documents (useful bevor deleting a node/document)
   # TODO: testing
-  Document::removeRelationships = (kindOfRelationship, cb, direction = 'both') ->
+  Document::removeRelationships = (kindOfRelationship, options, cb, direction = 'both') ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     @queryRelationships kindOfRelationship, { action: 'DELETE', direction: direction }, cb
 
-  Document::shortestPathTo = (doc, kindOfRelationship, cb) ->
+  Document::shortestPathTo = (doc, kindOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     from = @
     to = doc
     from.getNode (errFrom, fromNode) -> to.getNode (errTo, toNode) ->
@@ -243,4 +255,4 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         MATCH p = shortestPath( a-[*..#{levelDeepness}]->b )
         RETURN p;
       """
-      from.queryGraph(query, cb)
+      from.queryGraph(query, options, cb)
