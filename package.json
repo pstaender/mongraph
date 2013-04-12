@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage database with graph-database relationships",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Philipp Staender",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",
@@ -28,7 +28,7 @@
     "underscore.string": "~2.3",
     "underscore": "~1.4",
     "join": "~2.3",
-    "mongodb": "~1.2"
+    "bson": "~0.1.8"
   },
   "licenses" : {
     "type" : "MIT"

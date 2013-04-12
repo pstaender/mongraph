@@ -59,7 +59,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     id = processtools.getObjectIDAsString(doc)
     # Find equivalent node in graphdb
     # TODO: cache existing node
-    # TODO: replace ny graphdb.getNodeById,
+    # TODO: replace with graphdb.getNodeById,
     # but for that we need always the node id stored in this document (problem with mongoose plugin)
     graphdb.getIndexedNode collectionName, '_id', id, (foundErr, node) ->
       node.document = doc if node# cache  
@@ -84,9 +84,18 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   #### Finds or create equivalent Node to this Document
   Document::findOrCreateEquivalentNode = (cb) -> @findEquivalentNode(cb, true)
   
-  #### Recommend to use this method instead of `findOrCreateEquivalentNode`
-  #### Shortcutmethod -> findOrCreateEquivalentNode
+  # Recommend to use this method instead of `findOrCreateEquivalentNode`
+  # shortcutmethod -> findOrCreateEquivalentNode
   Document::getNode = Document::findOrCreateEquivalentNode
+
+
+  #### Finds and returns id of corresponding Node
+  # Faster, because it returns directly from document if stored (see -> mongraphMongoosePlugin)
+  Document::getNodeId = (cb) ->
+    if @_node_id
+      cb(null, @_node_id)
+    else
+      @getNode cb
 
   #### Creates a relationship from this Document to a given document
   Document::createRelationshipTo = (doc, kindOfRelationship, attributes = {}, cb) ->
@@ -98,7 +107,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     # TODO: Currently we have to store these information redundant because
     # otherwise we would have to request each side for it's represantive node
     # seperately to get the information wich namespace/collection the mongodb records is stored
-    # -->  would increase requests to neo4j heavily
+    # -->  would increase requests to neo4j
     if globalOptions.relationships.storeIDsInRelationship
       attributes._to   ?= doc.constructor.collection.name + ":" + (String) doc._id
       attributes._from ?= @constructor.collection.name    + ":" + (String) @._id

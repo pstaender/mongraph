@@ -62,9 +62,6 @@ mongraph.init
 # Define model
 Person = mongoose.model("Person", name: String)
 
-# Ensure that we'll always get mongoose created Documents
-mongraph.registerModels(mongoose)
-
 # Example data
 alice   = new Person(name: "Alice")
 bob     = new Person(name: "Bob")
@@ -125,6 +122,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### TODO's
 
-* load Document's models from Nodes (currently native on mongodb)
 * caching of loaded Nodes and Documents
 * deeper testing + better code coverage
+* benchmark tests
+* query with mongodb

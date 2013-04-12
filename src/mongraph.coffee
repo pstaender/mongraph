@@ -10,22 +10,6 @@ config =
   options:
     collectionToModel: {}
 
-# Register models
-registerModels = (mongoose) ->
-  if constructorNameOf(mongoose) is 'Mongoose'
-    models = mongoose.models
-  else unless mongoose
-    throw new Error('Expecting a mongoose- or a mongoose.models-object for registration')
-  else
-    # we assume that we have mongoose.models here
-    models = mongoose
-  for modelName of models
-    # add collectionName for each model
-    {collection,modelName} = models[modelName]
-    # register with collection and model name (easier to find and avoiding Person -> people problem)
-    config.options.collectionToModel[collection.name] = modelName
-  config.options.collectionToModel
-
 init = (options) ->
 
   options = {} if typeof options isnt 'object'
@@ -59,18 +43,16 @@ init = (options) ->
     for functionName in [ "getCollectionName", "getMongoId" ]
       throw new Error("Will not override neo4j::Node.prototype.#{functionName}") unless typeof node.constructor::[functionName] is 'undefined'
 
+
   # extend Document(s) with Node/GraphDB interoperability
   require('./extendDocument')(config.mongoose, config.graphdb, config.options)
   # extend Node(s) with DocumentDB interoperability
   require('./extendNode')(config.graphdb, config.mongoose, config.options)
-  
-  # TODO: currently we must init() mongraph before defining any schema
-  # solution could be: Activate it in project manually before defining models... ?!
-  
+    
   # Load plugin and extend schemas with middleware
   # -> http://mongoosejs.com/docs/plugins.html
   config.mongoose.plugin(mongraphMongoosePlugin) if config.options.extendSchemaWithMongoosePlugin
 
 
-module.exports = {init,config,processtools,registerModels}
+module.exports = {init,config,processtools}
 

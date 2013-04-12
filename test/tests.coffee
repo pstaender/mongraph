@@ -32,15 +32,11 @@ describe "Mongraph", ->
     
     # Define model
     schema = new mongoose.Schema(name: String)
-    
+
     # Used for checking that we are working with the mongoose model and not with native mongodb objects
     schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
 
     Person = mongoose.model "Person", schema
-
-    # Ensure that we'll always get mongoose created Documents
-    # Optional, but strongly recommend to do it
-    mongraph.registerModels(mongoose)
 
     alice   = new Person(name: "alice")
     bob     = new Person(name: "bob")

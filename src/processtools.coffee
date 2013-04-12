@@ -1,4 +1,4 @@
-ObjectId = require('mongodb').ObjectID
+ObjectId = require('bson').ObjectID
 Join = require('join')
 
 sortOptionsAndCallback = (options, cb) ->
@@ -87,4 +87,20 @@ loadDocumentsFromRelationshipArray = (mongodb, graphResultset, cb) ->
   join.when ->
     cb(null, relations, graphResultset)
 
-module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback}
+getModelByCollectionName = (collectionName, mongoose) ->
+  if constructorNameOf(mongoose) is 'Mongoose'
+    models = mongoose.models
+  else unless mongoose
+    return null
+  else
+    # we assume that we have mongoose.models here
+    models = mongoose
+  name = null
+  for nameOfModel, i of models
+    # iterate through models and find the corresponding collection and modelname
+    if collectionName is models[nameOfModel].collection.name
+      name = models[nameOfModel].modelName
+  name
+
+
+module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName}
