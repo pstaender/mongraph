@@ -32,9 +32,11 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     options.countRelationships ?= false
     # TODO: type check
     graphdb.query cypher, (err, map) ->
-      # add query to error if we have one, better for debugging
-      # TODO: remove later or use an option switch ?!
       err.query = cypher if err
+      # Adding cypher query for better debugging
+      options.cypherQuery = cypher
+      # TODO: would it be helpful to have also the direct result?
+      # options.graphResult = map
       if options.loadDocuments and map?.length > 0
         # extract from result
         data = for result in map
@@ -50,7 +52,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
           processtools.loadDocumentsFromNodeArray data, options, cb
       else
         # prevent `undefined is not a function` if no cb is given
-        cb(err, map) if typeof cb is 'function'
+        cb(err, map, options) if typeof cb is 'function'
 
   #### Loads the equivalent node to this Document 
   Document::findCorrespondingNode = (cb, doCreateIfNotExists = false) ->
@@ -170,7 +172,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     options.processPart ?= "relation"    
     # endNode can be string or node object
     options.endNode ?= ""
-    options.endNode = endNode.id if typeof endNode is 'object'
+    options.endNode = endNode.id if typeof endNode is 'object'    
     doc = @
     id = processtools.getObjectIDAsString(doc)
     @getNode (nodeErr, fromNode) ->
@@ -187,6 +189,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         action:         options.action.toUpperCase()
         processPart:    options.processPart
         endNode:        if options.endNode then ", b = node(#{options.endNode})" else ''
+      options.startNode ?= fromNode.id # for logging
       if options.query
         # take query from options and discard build query
         cypher = query
@@ -214,32 +217,35 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     @queryRelationships(kindOfRelationship, options, cb)
   
   #### Remove outgoing relationships to a specific Document
-  Document::removeRelationshipsTo = (doc, kindOfRelationship, options, cb, direction = 'outgoing') ->
+  Document::removeRelationshipsTo = (doc, kindOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction ?= 'outgoing'
+    options.action = 'DELETE'
     from = @
     doc.getNode (nodeErr, endNode) ->
       return cb(nodeErr, endNode) if nodeErr
-      from.queryRelationships kindOfRelationship, { direction: direction, action: 'DELETE', endNode: endNode.id }, cb
+      options.endNode = endNode.id
+      from.queryRelationships kindOfRelationship, options, cb
 
   #### Removes incoming relationships to a specific Document
-  # TODO: testing
-  Document::removeRelationshipsFrom = (doc, kindOfRelationship, options, cb, direction = 'incoming') ->
-    
-    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
+  Document::removeRelationshipsFrom = (doc, kindOfRelationship, options, cb) ->
+    to = @
+    doc.removeRelationshipsTo to, kindOfRelationship, options, cb
 
   #### Removes incoming ad outgoing relationships between two Documents
-  # TODO: testing
-  Document::removeRelationshipsBetween = (doc, kindOfRelationship, options, cb, direction = 'both') ->
+  Document::removeRelationshipsBetween = (doc, kindOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    @removeRelationshipsTo(doc, kindOfRelationship, cb, direction)
+    options.direction = 'both'
+    @removeRelationshipsTo(doc, kindOfRelationship, options, cb)
 
   #### Removes incoming and outgoing relationships to all Documents (useful bevor deleting a node/document)
-  # TODO: testing
-  Document::removeRelationships = (kindOfRelationship, options, cb, direction = 'both') ->
+  Document::removeRelationships = (kindOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    @queryRelationships kindOfRelationship, { action: 'DELETE', direction: direction }, cb
+    options.direction = 'both'
+    options.action = 'DELETE'
+    @queryRelationships kindOfRelationship, options, cb
 
+  #### Returns the shortest path between this and another document
   Document::shortestPathTo = (doc, kindOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     from = @

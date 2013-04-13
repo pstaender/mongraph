@@ -7,23 +7,17 @@ Mongraph combines documentstorage database with graph-database relationships.
 
 **Experimental. API may change.**
 
-### Dependencies
+### Works with
 
-#### Databases
+#### databases
 
-* MongoDB (2+)
-* Neo4j (1.8+)
+* MongoDB (~2)
+* Neo4j (~1.8)
 
-#### Needs following modules to work with
+#### npm modules
 
 * mongoose ORM <https://github.com/learnboost/mongoose> `npm install mongoose`
 * Neo4j REST API client by thingdom <https://github.com/thingdom/node-neo4j> `npm install neo4j`
-
-### What's it good for?
-
-### What does it take to?
-
-
 
 ### Usage
 
@@ -129,6 +123,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### TODO's
 
 * caching of loaded Nodes and Documents
-* deeper testing + better code coverage
 * benchmark tests
-* query with mongodb
+* improve examples, documentation and readme

@@ -212,6 +212,49 @@ describe "Mongraph", ->
                 expect(follows).to.have.length 0
                 done()
 
+    describe '#removeRelationshipsFrom', ->
+
+      it 'expects to remove incoming relationships from a document', (done) ->
+        alice.incomingRelationships 'knows', (err, relationships) ->
+          countBefore = relationships.length
+          expect(relationships.length).to.be.equal 1
+          expect(relationships[0].from.name).to.be.equal 'zoe'
+          alice.removeRelationshipsFrom zoe, 'knows', (err, query, options) ->
+            expect(err).to.be null
+            alice.incomingRelationships 'knows',(err, relationships) ->
+              expect(relationships.length).to.be.equal 0
+              done()
+
+    describe '#removeRelationshipsBetween', ->
+
+      it 'expects to remove incoming and outgoing relationships between two documents', (done) ->
+        # alice <-knows-> zoe
+        alice.removeRelationships 'knows', -> zoe.removeRelationships 'knows', ->
+          alice.createRelationshipTo zoe, 'knows', -> zoe.createRelationshipTo alice, 'knows', (err) ->
+            alice.incomingRelationships 'knows', (err, relationships) ->
+              aliceCountBefore = relationships.length
+              zoe.incomingRelationships 'knows', (err, relationships) ->
+                zoeCountBefore = relationships.length
+                expect(relationships[0].from.name).to.be.equal 'alice'
+                zoe.removeRelationshipsBetween alice, 'knows', (err) ->
+                  expect(err).to.be null
+                  alice.incomingRelationships 'knows', (err, aliceRelationships) ->
+                    expect(aliceRelationships.length).to.be.below aliceCountBefore
+                    zoe.incomingRelationships 'knows', (err, zoeRelationships) ->
+                      expect(zoeRelationships.length).to.be.below zoeCountBefore
+                      done()
+
+    describe '#removeRelationships', ->
+
+      it 'expects to remove all incoming and outgoing relationships', (done) ->
+        alice.allRelationships 'knows', (err, relationships) ->
+          expect(relationships.length).to.be.above 0
+          alice.removeRelationships 'knows', (err) ->
+            expect(err).to.be null
+            alice.allRelationships 'knows', (err, relationships) ->
+              expect(relationships).to.have.length 0
+              done()
+
     describe '#removeRelationships', ->
 
       it 'expect to remove all relationship of a specific type', (done) ->

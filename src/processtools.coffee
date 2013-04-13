@@ -105,7 +105,7 @@ loadDocumentsFromNodeArray = (result, options, cb) ->
     if options.where
       loadDocumentsWithConditions(data, options.where, options, cb)
     else
-      cb(err,data)
+      cb(err,data,options)
 
 # TODO: Merge relationships and node loading documents together
 # TODO: shrink redundant code
@@ -161,24 +161,24 @@ loadDocumentsFromArray = (array, options, cb) ->
         finalResults.push(result) if result.from and result.to
     else
       finalResults = results
-    cb(null, finalResults, options.graphResultset)
+    cb(null, finalResults, options)
 
 # load record(s) by id from a given array
 loadDocumentsFromRelationshipArray = (graphResultset, options, cb) ->
   {options, cb} = sortOptionsAndCallback(options,cb)
   # return cb(new Error('Need db connection as argument'), null, graphResultset) if constructorNameOf(mongoose) isnt 'NativeConnection'
-  return cb(new Error('No Array given'), null, graphResultset) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
+  return cb(new Error('No Array given'), null, options) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
   # sort out all non relationship objects
   relations = []
   for relation, i in graphResultset
     relations.push(relation) if constructorNameOf(relation) is 'Relationship'
+  # TODO: also implement a options.count for after querying mongodb
+  return cb(null,relations.length,options) if options.countRelationships
   # skip it if no relationships (as expected) where found
   # but in case we having another result object
   # we pass it as 3rd argument so that it can be processed some other way
   # TODO: distinguish between relationships, nodes + paths as result
-  return cb(null,null,graphResultset) unless relations.length > 0
-  # TODO: also implement a options.count for after querying mongodb
-  return cb(null,relations.length) if options.countRelationships
+  return cb(null,null,options) unless relations.length > 0
   # We have to query each record, because they can be stored in different collections
   # TODO: presort collections and do "where in []" queries for each collection
   options.graphResultset = graphResultset

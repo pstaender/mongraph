@@ -36,11 +36,11 @@ init = (options) ->
     # Check that we don't override existing functions
     # throw exception if so
     # Check Monogoose
-    for functionName in [ "getRelationships", "createRelationshipTo", "deleteRelationshipTo", "getNode", "findEquivalentNode", "findOrCreateEquivalentNode", "getRelatedDocuments", "_graph" ]
+    for functionName in [ 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode', '_graph' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof config.mongoose.Document::[functionName] is 'undefined'
     # Check Neo4j
     node = config.graphdb.createNode()
-    for functionName in [ "getCollectionName", "getMongoId" ]
+    for functionName in [ 'getDocument', 'getMongoId', 'getCollectionName' ]
       throw new Error("Will not override neo4j::Node.prototype.#{functionName}") unless typeof node.constructor::[functionName] is 'undefined'
 
 
