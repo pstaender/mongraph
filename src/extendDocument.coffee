@@ -100,7 +100,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       @getNode cb
 
   #### Creates a relationship from this Document to a given document
-  Document::createRelationshipTo = (doc, kindOfRelationship, attributes = {}, cb) ->
+  Document::createRelationshipTo = (doc, typeOfRelationship, attributes = {}, cb) ->
     # assign cb + attribute arguments
     if typeof attributes is 'function'
       cb = attributes
@@ -121,24 +121,24 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     @findOrCreateCorrespondingNode (fromErr, from) ->
       doc.findOrCreateCorrespondingNode (toErr, to) ->
         if from and to
-          from.createRelationshipTo to, kindOfRelationship, attributes, cb
+          from.createRelationshipTo to, typeOfRelationship, attributes, cb
         else
           cb(fromErr or toErr, null) if typeof cb is 'function'
   
   #### Creates an incoming relationship from a given Documents to this Document
-  Document::createRelationshipFrom = (doc, kindOfRelationship, attributes = {}, cb) ->
+  Document::createRelationshipFrom = (doc, typeOfRelationship, attributes = {}, cb) ->
     # alternate directions: doc -> this
-    doc.createRelationshipTo(@, kindOfRelationship, attributes, cb)
+    doc.createRelationshipTo(@, typeOfRelationship, attributes, cb)
 
   #### Creates a bidrectional relationship between two Documents
-  Document::createRelationshipBetween = (doc, kindOfRelationship, attributes = {}, cb) ->
+  Document::createRelationshipBetween = (doc, typeOfRelationship, attributes = {}, cb) ->
     # both directions
     self = @
     found = []
-    @createRelationshipTo doc, kindOfRelationship, attributes, (err, first) ->
+    @createRelationshipTo doc, typeOfRelationship, attributes, (err, first) ->
       return cb(err) if err
       found.push(first)
-      doc.createRelationshipTo self, kindOfRelationship, attributes, (err, second) ->
+      doc.createRelationshipTo self, typeOfRelationship, attributes, (err, second) ->
         return cb(err) if err
         found.push(second)
         cb(err, found) if typeof cb is 'function'
@@ -151,7 +151,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   #### Allows extended querying to the graphdb and loads found Documents
   #### (is used by many methods for loading incoming + outgoing relationships) 
-  # @param kindOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
+  # @param typeOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
   # @param options = {}
   # (first value is default)
   # * direction (both|incoming|outgoing)
@@ -159,14 +159,14 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   # * processPart: (relationship|path|...) (depends on the result you expect from our query)
   # * loadDocuments: (true|false)
   # * endNode: '' (can be a node object or an nodeID)
-  Document::queryRelationships = (kindOfRelationship, options, cb) ->
+  Document::queryRelationships = (typeOfRelationship, options, cb) ->
     _s = require('underscore.string')
     # options can be a cypher query as string
     options = { query: options } if typeof options is 'string'
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     # build query from options
-    kindOfRelationship ?= '*'
-    kindOfRelationship = if /^[*:]{1}$/.test(kindOfRelationship) or not kindOfRelationship then '' else ':'+kindOfRelationship
+    typeOfRelationship ?= '*'
+    typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
     options.direction ?= 'both'
     options.action ?= "RETURN"
     options.processPart ?= "relation"    
@@ -185,7 +185,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         id:             fromNode.id
         incoming:       if options.direction is 'incoming' then '<-' else '-'
         outgoing:       if options.direction is 'outgoing' then '->' else '-'
-        relation:       kindOfRelationship
+        relation:       typeOfRelationship
         action:         options.action.toUpperCase()
         processPart:    options.processPart
         endNode:        if options.endNode then ", b = node(#{options.endNode})" else ''
@@ -199,25 +199,25 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         _queryGraphDB(cypher, options, cb)
 
   #### Loads incoming and outgoing relationships
-  Document::allRelationships = (kindOfRelationship, options, cb) ->
+  Document::allRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'both'
-    @queryRelationships(kindOfRelationship, options, cb)
+    @queryRelationships(typeOfRelationship, options, cb)
 
   #### Loads incoming relationships
-  Document::incomingRelationships = (kindOfRelationship, options, cb) ->
+  Document::incomingRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'incoming'
-    @queryRelationships(kindOfRelationship, options, cb)
+    @queryRelationships(typeOfRelationship, options, cb)
 
   #### Loads outgoing relationships
-  Document::outgoingRelationships = (kindOfRelationship, options, cb) ->
+  Document::outgoingRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'outgoing'
-    @queryRelationships(kindOfRelationship, options, cb)
+    @queryRelationships(typeOfRelationship, options, cb)
   
   #### Remove outgoing relationships to a specific Document
-  Document::removeRelationshipsTo = (doc, kindOfRelationship, options, cb) ->
+  Document::removeRelationshipsTo = (doc, typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction ?= 'outgoing'
     options.action = 'DELETE'
@@ -225,28 +225,28 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     doc.getNode (nodeErr, endNode) ->
       return cb(nodeErr, endNode) if nodeErr
       options.endNode = endNode.id
-      from.queryRelationships kindOfRelationship, options, cb
+      from.queryRelationships typeOfRelationship, options, cb
 
   #### Removes incoming relationships to a specific Document
-  Document::removeRelationshipsFrom = (doc, kindOfRelationship, options, cb) ->
+  Document::removeRelationshipsFrom = (doc, typeOfRelationship, options, cb) ->
     to = @
-    doc.removeRelationshipsTo to, kindOfRelationship, options, cb
+    doc.removeRelationshipsTo to, typeOfRelationship, options, cb
 
   #### Removes incoming ad outgoing relationships between two Documents
-  Document::removeRelationshipsBetween = (doc, kindOfRelationship, options, cb) ->
+  Document::removeRelationshipsBetween = (doc, typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'both'
-    @removeRelationshipsTo(doc, kindOfRelationship, options, cb)
+    @removeRelationshipsTo(doc, typeOfRelationship, options, cb)
 
   #### Removes incoming and outgoing relationships to all Documents (useful bevor deleting a node/document)
-  Document::removeRelationships = (kindOfRelationship, options, cb) ->
+  Document::removeRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'both'
     options.action = 'DELETE'
-    @queryRelationships kindOfRelationship, options, cb
+    @queryRelationships typeOfRelationship, options, cb
 
   #### Returns the shortest path between this and another document
-  Document::shortestPathTo = (doc, kindOfRelationship, options, cb) ->
+  Document::shortestPathTo = (doc, typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     from = @
     to = doc
