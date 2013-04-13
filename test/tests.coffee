@@ -98,34 +98,34 @@ describe "Mongraph", ->
 
   describe 'mongoose::Document', ->
 
-    describe '#findEquivalentNode()', ->
+    describe '#findCorrespondingNode()', ->
 
       it 'expect not to find an equivalent node for any person in graphdb', (done) ->
         for person, i in [ alice, bob ]
           do (i, person) ->          
-            person.findEquivalentNode (err, found) ->
+            person.findCorrespondingNode (err, found) ->
               expect(err).to.be(null)
               expect(found).to.be(undefined)
               done() if i is 1
 
-    describe '#findOrCreateEquivalentNode()', ->
+    describe '#findOrCreateCorrespondingNode()', ->
 
       it 'expect to find or create an equivalent node for each person', (done) ->
         for person, i in [ alice, bob ]
           do (i, person) ->
-            person.findOrCreateEquivalentNode (err, node) ->
+            person.findOrCreateCorrespondingNode (err, node) ->
               expect(err).to.be(undefined)
               expect(node).to.be.an('object')
               expect(node.data._id).to.be.equal (String) person._id
               done() if i is 1
 
-    describe '#findOrCreateEquivalentNode()', ->
+    describe '#findOrCreateCorrespondingNode()', ->
 
       it 'expect to find a distinct node to each record', (done) ->
         previousNodeId = null
         for i in [ 0..1 ]
           do (i) ->
-            alice.findOrCreateEquivalentNode (err, node) ->
+            alice.findOrCreateCorrespondingNode (err, node) ->
               expect(node.data._id).to.be.equal (String) alice._id
               previousNodeId ?= node.id
               if i is 1
@@ -276,8 +276,8 @@ describe "Mongraph", ->
           expect(path[0].fullname).to.be.equal 'alice a.'
           done()
 
-      it 'expects to get a mongoose document with conditions', (done) ->
-        alice.shortestPathTo zoe, 'knows', { where: { name: /a/ } }, (err, path) ->
+      it 'expects to get a mongoose document with conditions (names with o occurence)', (done) ->
+        alice.shortestPathTo zoe, 'knows', { where: { name: /o/ } }, (err, path) ->
           console.log path
           done()
 

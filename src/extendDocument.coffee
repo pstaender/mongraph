@@ -13,6 +13,8 @@ module.exports = (mongoose, graphdb, globalOptions) ->
 
   Document = mongoose.Document
 
+  processtools.setMongoose mongoose
+
   node = graphdb.createNode()
 
   #### Can be used to make native queries on neo4j
@@ -27,11 +29,8 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   _queryGraphDB = (cypher, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.loadDocuments ?= true
-    # TODO: "mongoose.connection" doesn't work as expected
-    # but options.mongoose native connection is mandatory
-    # so we must ensure that we always attach a connection from document
+    options.countRelationships ?= false
     # TODO: type check
-    return cb("Set 'options.mongodbConnection' with a NativeConnection to process query", null) unless processtools.constructorNameOf(options.mongodb) is 'NativeConnection'
     graphdb.query cypher, (err, map) ->
       # add query to error if we have one, better for debugging
       # TODO: remove later or use an option switch ?!
@@ -54,7 +53,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         cb(err, map) if typeof cb is 'function'
 
   #### Loads the equivalent node to this Document 
-  Document::findEquivalentNode = (cb, doCreateIfNotExists = false) ->
+  Document::findCorrespondingNode = (cb, doCreateIfNotExists = false) ->
     doc = @
     collectionName = doc.constructor.collection.name
     id = processtools.getObjectIDAsString(doc)
@@ -83,11 +82,11 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         cb(null, node) if typeof cb is 'function'
 
   #### Finds or create equivalent Node to this Document
-  Document::findOrCreateEquivalentNode = (cb) -> @findEquivalentNode(cb, true)
+  Document::findOrCreateCorrespondingNode = (cb) -> @findCorrespondingNode(cb, true)
   
-  # Recommend to use this method instead of `findOrCreateEquivalentNode`
-  # shortcutmethod -> findOrCreateEquivalentNode
-  Document::getNode = Document::findOrCreateEquivalentNode
+  # Recommend to use this method instead of `findOrCreateCorrespondingNode`
+  # shortcutmethod -> findOrCreateCorrespondingNode
+  Document::getNode = Document::findOrCreateCorrespondingNode
 
 
   #### Finds and returns id of corresponding Node
@@ -117,8 +116,8 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       attributes._created_at ?= Math.floor(Date.now()/1000) 
 
     # Get both nodes: "from" node (this document) and "to" node (given as 1st argument)
-    @findOrCreateEquivalentNode (fromErr, from) ->
-      doc.findOrCreateEquivalentNode (toErr, to) ->
+    @findOrCreateCorrespondingNode (fromErr, from) ->
+      doc.findOrCreateCorrespondingNode (toErr, to) ->
         if from and to
           from.createRelationshipTo to, kindOfRelationship, attributes, cb
         else
@@ -146,7 +145,6 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   Document::queryGraph = (chypherQuery, options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
-    options.mongodb = doc.db
     _queryGraphDB(chypherQuery, options, cb)
 
   #### Allows extended querying to the graphdb and loads found Documents
@@ -169,7 +167,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     kindOfRelationship = if /^[*:]{1}$/.test(kindOfRelationship) or not kindOfRelationship then '' else ':'+kindOfRelationship
     options.direction ?= 'both'
     options.action ?= "RETURN"
-    options.processPart ?= "relation"
+    options.processPart ?= "relation"    
     # endNode can be string or node object
     options.endNode ?= ""
     options.endNode = endNode.id if typeof endNode is 'object'
@@ -195,7 +193,6 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       if options.dontExecute
         cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null)
       else
-        options.mongodb ?= doc.db
         _queryGraphDB(cypher, options, cb)
 
   #### Loads incoming and outgoing relationships
