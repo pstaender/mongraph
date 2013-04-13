@@ -306,9 +306,13 @@ describe "Mongraph", ->
           expect(path[0].fullname).to.be.equal 'alice a.'
           done()
 
-      it 'expect to get a mongoose document with conditions (names with o occurence)', (done) ->
+      it 'expect to get a mongoose document with conditions (names with `o` occurrence)', (done) ->
         alice.shortestPathTo zoe, 'knows', { where: { name: /o/ } }, (err, path) ->
-          console.log path
+          bob = path[0]
+          zoe = path[1]
+          expect(bob.name).to.be.equal 'bob'
+          expect(zoe.name).to.be.equal 'zoe'
+          expect(path).to.have.length 2
           done()
 
 

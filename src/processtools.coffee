@@ -45,24 +45,44 @@ getObjectIDsAsArray = (mixed) ->
 # TODO: make simpler queries (to neo4j + mongodb) -> only by id's
 loadDocumentsWithConditions = (documents, conditions, options, cb) ->
   {options,cb} = sortOptionsAndCallback(options,cb)
-  collections = {}
+  # collections with ids
+  collectionIds = {}
+  # ids with collection
+  allIds = {}
+  # Sort ids + collections
   for doc in documents
-    # TODO: filter collections if options.collection
-    # TODO: remove sort
     collectionName = doc.constructor.collection.name
-    collections[collectionName] ?= []
-    collections[collectionName].push(doc._id)
+    collectionIds[collectionName] ?= []
+    collectionIds[collectionName].push(doc._id)
+    allIds[doc._id] = collectionName
+  # Do one (faster) query if we have a distinct collection
+  # if we have documents found for this collection
+  if options.collection and collectionIds[options.collection]?.length > 0
+    condition = { $and: [ { _id: { $in: collectionIds[options.collection] } } , conditions ] }
+    collection = getCollectionByCollectionName(options.collection, mongoose)
+    return collection.find condition, cb
   join = Join.create()
-  # iterate through all collections
-  for collection, ids of collections
-    do (collection, ids) ->
-      condition = { $and: [ { _id: { $in: ids } } , options.where ] }
-      collection = getCollectionByCollectionName(collectionName, mongoose)
+  # get all documents by ids
+  for id of allIds
+    collectionName = allIds[id]
+    collection = getCollectionByCollectionName(collectionName, mongoose)
+    do (collection, id) ->
       callback = join.add()
+      condition = { $and: [ { _id: id }, conditions ] }
       collection.find condition, callback
   join.when ->
-    console.log arguments
-    cb(new Error('Not implemented yet'), null)
+    errs = []
+    docs = []
+    for result in arguments
+      errs.push(result[0]?.message or result[0]) if result[0] # if error
+      if result[1] # if doc found
+        for record in result[1]
+          docs.push(record) 
+      
+    if errs.length > 0
+      cb(new Error(errs.join(", ")), docs) 
+    else
+      cb(null, docs)
 
 
 loadDocumentsFromNodeArray = (result, options, cb) ->
