@@ -48,11 +48,16 @@ describe "Mongraph", ->
     pub     = new Location(name: "Pub", lon: 40, lat: 10)
 
     # remove all previous persons
-    Person.collection.remove (removeCollectionErr) ->
-      # define example schema for person
-      alice.save (aliceSavingErr) -> bob.save (bobSavingErr) -> charles.save (charlesSavingErr) -> zoe.save (zoeSavingErr) ->
-        bar.save (barSavingErr) -> pub.save (pubSavingErr) ->
-          done(aliceSavingErr or bobSavingErr or zoeSavingErr or charlesSavingErr or removeCollectionErr or barSavingErr or pubSavingErr)
+    Person.remove ->
+      Location.remove ->
+        alice.save -> bob.save -> charles.save -> zoe.save ->
+          bar.save -> pub.save ->
+            done()
+    # Person.collection.remove (removeCollectionErr) ->
+    #   # define example schema for person
+    #   alice.save (aliceSavingErr) -> bob.save (bobSavingErr) -> charles.save (charlesSavingErr) -> zoe.save (zoeSavingErr) ->
+    #     bar.save (barSavingErr) -> pub.save (pubSavingErr) ->
+    #       done(aliceSavingErr or bobSavingErr or zoeSavingErr or charlesSavingErr or removeCollectionErr or barSavingErr or pubSavingErr)
 
   beforeEach (done) ->
     # remove all relationships
@@ -88,13 +93,13 @@ describe "Mongraph", ->
 
     describe '#init()', ->
 
-      it 'expect that we have 2 persons we created available in mongodb', (done) ->
+      it 'expect that we have the expected records in mongodb', (done) ->
         persons = []
-        Person.findById alice._id, (err, pers1) -> Person.findById bob._id, (err, pers2) ->
-          persons.push(pers1) if pers1 and not err
-          persons.push(pers2) if pers2 and not err
-          expect(persons).to.have.length(2)
-          done()
+        Person.count (err, count) ->
+          expect(count).to.be.equal 4
+          Location.count (err, count) ->
+            expect(count).to.be.equal 2
+            done()
 
   describe 'mongoose::Document', ->
 
@@ -110,16 +115,19 @@ describe "Mongraph", ->
 
     describe '#findOrCreateCorrespondingNode()', ->
 
-      it 'expect to find or create an equivalent node for each person', (done) ->
+      it 'expect to find or create a corresponding node for each person', (done) ->
         for person, i in [ alice, bob ]
           do (i, person) ->
-            person.findOrCreateCorrespondingNode (err, node) ->
-              expect(err).to.be(undefined)
-              expect(node).to.be.an('object')
-              expect(node.data._id).to.be.equal (String) person._id
-              done() if i is 1
-
-    describe '#findOrCreateCorrespondingNode()', ->
+            person.findCorrespondingNode (err, found) ->
+              expect(found).to.be(undefined)
+              person.findOrCreateCorrespondingNode (err, node) ->
+                expect(err).to.be(undefined)
+                expect(node).to.be.an('object')
+                expect(node.data._id).to.be.equal (String) person._id
+                if i is 1
+                  person.findCorrespondingNode (err, found) ->
+                    expect(found).to.be.an('object')
+                    done()
 
       it 'expect to find a distinct node to each record', (done) ->
         previousNodeId = null
@@ -133,9 +141,26 @@ describe "Mongraph", ->
                 expect(node.id).to.be.equal(previousNodeId)
                 done() if i is 1
 
+    describe '#getNode()', ->
+
+      it 'expect the same as with findOrCreateCorrespondingNode()', (done) ->
+        for person, i in [ alice, bob ]
+          do (i, person) ->
+            person.findCorrespondingNode (err, found) ->
+              expect(found).to.be(undefined)
+              person.findOrCreateCorrespondingNode (err, node) ->
+                expect(err).to.be(undefined)
+                expect(node).to.be.an('object')
+                expect(node.data._id).to.be.equal (String) person._id
+                if i is 1
+                  person.findCorrespondingNode (err, found) ->
+                    expect(found).to.be.an('object')
+                    done()
+
+
     describe '#createRelationshipTo()', ->
 
-      it 'expect to create a relationship: alice knows bob', (done) ->
+      it 'expect to create an outgoing relationship from this document to a document', (done) ->
         alice.createRelationshipTo bob, 'knows', { since: 'years' }, (err, relationship) ->
           expect(relationship.start.data._id).to.be.equal (String) alice._id
           expect(relationship.end.data._id).to.be.equal (String) bob._id
@@ -148,7 +173,7 @@ describe "Mongraph", ->
 
     describe '#createRelationshipFrom()', ->
 
-      it 'expect to create a relationship the other way round: zoe knows bob, but bob doesn\'t know zoe' , (done) ->
+      it 'expect to create an incoming relationship from a document to this document' , (done) ->
         bob.createRelationshipFrom zoe, 'knows', { since: 'years' }, (err, relationship) ->
           expect(relationship.start.data._id).to.be.equal (String) zoe._id
           expect(relationship.end.data._id).to.be.equal (String) bob._id
@@ -156,7 +181,7 @@ describe "Mongraph", ->
 
     describe '#createRelationshipBetween()', ->
 
-      it 'expects to create a relationship between two documents (bidirectional)', (done) ->
+      it 'expect to create a relationship between two documents (bidirectional)', (done) ->
         alice.createRelationshipBetween bob, 'follows', {}, (err, relationships) ->
           expect(relationships).have.length 2
           expect(err).to.be null
@@ -170,7 +195,7 @@ describe "Mongraph", ->
 
     describe '#removeRelationshipsTo', ->
 
-      it 'expect to remove Relationships to other document', (done) ->
+      it 'expect to remove outgoing relationships to a document', (done) ->
         # zoe gets to follow bob
         zoe.createRelationshipTo bob, 'follows', (err, relationship) ->
           expect(err).to.be null
@@ -189,7 +214,7 @@ describe "Mongraph", ->
 
     describe '#removeRelationships', ->
 
-      it 'expect to remove all relationship of one type', (done) ->
+      it 'expect to remove all relationship of a specific type', (done) ->
         alice.allRelationships 'knows', (err, relationships) ->
           expect(relationships?.length).be.above 0
           alice.removeRelationships 'knows', (err, relationships) ->
@@ -198,11 +223,16 @@ describe "Mongraph", ->
 
     describe '#allRelationships()', ->
 
-      it 'expect to get all people alice knows and all people that know alice', (done) ->
+      it 'expect to get incoming and outgoing relationship as relationship', (done) ->
         alice.allRelationships 'knows', (err, relationships) ->
           expect(relationships).to.be.an 'array'
           expect(relationships).to.have.length 2
           expect(relationships[0].data.since).to.be.equal 'years'
+          done()
+
+      it 'expect to get incoming and outgoing relationships counted', (done) ->
+        alice.allRelationships 'knows', { countRelationships: true }, (err, count) ->
+          expect(count).to.be.equal 2
           done()
 
       it 'expect to get all related documents', (done) ->
@@ -217,7 +247,7 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'alice', 'bob' )
           done()
 
-      it 'expects to get outgoing relationships+documents from collection `location`', (done) ->
+      it 'expect to get outgoing relationships+documents from collection `location`', (done) ->
         alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships) ->
           data = {}
           for relationship in relationships
@@ -227,7 +257,7 @@ describe "Mongraph", ->
           expect(err).to.be null
           done()
 
-      it 'expects to get incoming relationships+documents with where condition (name starts with uppercase)', (done) ->
+      it 'expect to get incoming relationships+documents where name starts with an uppercase', (done) ->
         alice.outgoingRelationships '*', { where: { name: /^[A-Z]/ } }, (err, relationships) ->
           expect(relationships).to.have.length 2
           data = {}
@@ -238,14 +268,14 @@ describe "Mongraph", ->
 
     describe '#incomingRelationships()', ->
 
-      it 'expects that alice is only known by zoe', (done) ->
+      it 'expect to get only incoming relationships', (done) ->
         alice.incomingRelationships 'knows', (err, result) ->
           expect(err).to.be(null)
           expect(result).to.have.length 1
           expect(result[0].data.since).be.equal 'months'
           done()
 
-      it 'expects to get incoming relationships+documents from collection `people`', (done) ->
+      it 'expect to get incoming relationships+documents from a specific collection', (done) ->
         alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
           expect(relationships).to.have.length 1
           expect(relationships[0].from.name).to.be 'zoe'
@@ -253,7 +283,7 @@ describe "Mongraph", ->
 
     describe '#outgoingRelationships()', ->
 
-      it 'expects that alice visits 2 places', (done) ->
+      it 'expect to get only outgoing relationshipss', (done) ->
         alice.outgoingRelationships 'visits', (err, result) ->
           expect(err).to.be(null)
           expect(result).to.have.length 2
@@ -261,7 +291,7 @@ describe "Mongraph", ->
 
     describe '#shortestPath()', ->
 
-      it 'expects to get the shortest path between two documents', (done) ->
+      it 'expect to get the shortest path between two documents', (done) ->
         alice.shortestPathTo zoe, 'knows', (err, path) ->
           expect(path).to.be.an 'object'
           expect(err).to.be null
@@ -270,13 +300,13 @@ describe "Mongraph", ->
             expect(String(node._id)).be.equal String(expectedPath[i])
           done()
       
-      it 'expects to get a mongoose document instead of a native mongodb document', (done) ->
+      it 'expect to get a mongoose document instead of a native mongodb document', (done) ->
         alice.shortestPathTo zoe, 'knows', (err, path) ->
           expect(path).to.have.length 3
           expect(path[0].fullname).to.be.equal 'alice a.'
           done()
 
-      it 'expects to get a mongoose document with conditions (names with o occurence)', (done) ->
+      it 'expect to get a mongoose document with conditions (names with o occurence)', (done) ->
         alice.shortestPathTo zoe, 'knows', { where: { name: /o/ } }, (err, path) ->
           console.log path
           done()
