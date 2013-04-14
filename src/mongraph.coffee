@@ -2,13 +2,8 @@ processtools = require('./processtools')
 mongraphMongoosePlugin = require('./mongraphMongoosePlugin')
 _ = require('underscore')
 
-# shortcut
-constructorNameOf = processtools.constructorNameOf
-
 # bare config 
-config =
-  options:
-    collectionToModel: {}
+config = { options: {} }
 
 init = (options) ->
 
@@ -27,14 +22,17 @@ init = (options) ->
   config.options.relationships.storeTimestamp = true # is always true
   config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
   config.options.relationships.bidirectional ?= false
+  # used for extendDocument + extendNode
+  config.options.mongoose = options.mongoose
+  config.options.graphdb  = options.neo4j
 
-  throw new Error("mongraph needs a mongoose reference as parameter") unless constructorNameOf(config.mongoose) is 'Mongoose'
-  throw new Error("mongraph needs a neo4j graphdatabase reference as paramater") unless constructorNameOf(config.graphdb) is 'GraphDatabase'
+  throw new Error("mongraph needs a mongoose reference as parameter") unless processtools.constructorNameOf(config.mongoose) is 'Mongoose'
+  throw new Error("mongraph needs a neo4j graphdatabase reference as paramater") unless processtools.constructorNameOf(config.graphdb) is 'GraphDatabase'
 
   # extend Document(s) with Node/GraphDB interoperability
-  require('./extendDocument')(config.mongoose, config.graphdb, config.options)
+  require('./extendDocument')(config.options)
   # extend Node(s) with DocumentDB interoperability
-  require('./extendNode')(config.graphdb, config.mongoose, config.options)
+  require('./extendNode')(config.options)
   # TODO: implement extendRelationship, extendPath
 
   # Load plugin and extend schemas with middleware

@@ -55,7 +55,7 @@ describe "Mongraph", ->
           cb()
 
     if cleanupDBs
-      # Drop all records
+      # remove all records
       Person.remove -> Location.remove -> createExampleDocuments ->
         done()
     else
@@ -242,8 +242,6 @@ describe "Mongraph", ->
             alice.allRelationships 'knows', (err, relationships) ->
               expect(relationships).to.have.length 0
               done()
-
-    describe '#removeRelationships', ->
 
       it 'expect to remove all relationship of a specific type', (done) ->
         alice.allRelationships 'knows', (err, relationships) ->

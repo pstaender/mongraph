@@ -7,9 +7,13 @@
 #
 # TODO: check that we always get Documents as mongoose models
 
+_s = require('underscore.string')
 processtools = require('./processtools')
 
-module.exports = (mongoose, graphdb, globalOptions) ->
+module.exports = (globalOptions) ->
+
+  mongoose = globalOptions.mongoose
+  graphdb  = globalOptions.neo4j
 
   # Check that we don't override existing functions
   if globalOptions.overwriteProtypeFunctions isnt true
@@ -187,8 +191,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   # * processPart: (relationship|path|...) (depends on the result you expect from our query)
   # * loadDocuments: (true|false)
   # * endNode: '' (can be a node object or a nodeID)
-  Document::queryRelationships = (typeOfRelationship, options, cb) ->
-    _s = require('underscore.string')
+  Document::queryRelationships = (typeOfRelationship, options, cb) ->    
     # options can be a cypher query as string
     options = { query: options } if typeof options is 'string'
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
