@@ -135,9 +135,3 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   * benchmark
   * more examples, documentation and better readme
   * refactor `processtools` and create seperate extensions for node, path and relationship (neo4j)
-
-### Known issue
-
-Currently we have more nodes count after the test than we had before… actually they should be equal because they all (should) get deleted with the corresponding documents.
-
-For now: this is definetly an issue but should have no effect on daily usage because all relationships get deleted correctly and we are always working with node(s) of existing documents.

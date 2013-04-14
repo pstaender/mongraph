@@ -289,7 +289,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       else
         cypher = """
           START n = node(#{node.id})
-          MATCH n-[r]-()
+          MATCH n-[r?]-()
           DELETE n#{if options.includeRelationships then ', r' else ''}
         """
         _queryGraphDB(cypher, options, cb)

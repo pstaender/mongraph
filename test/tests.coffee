@@ -88,9 +88,8 @@ describe "Mongraph", ->
     for record in [ alice, bob, charles, dave, elon, zoe, bar, pub ]
       do (record) ->
         callback = join.add()
-        record.remove callback#WithNode callback
-    join.when ->
-      # console.log 'Removed '+i+' records and nodes created by testing'
+        record.remove callback
+    join.when (a, b) ->
       done()
 
   describe 'processtools', ->

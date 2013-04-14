@@ -5,7 +5,6 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
     _node_id: Number,
   }
 
-  options.storeNodeID ?= true
   options.relations ?= {}
   options.relations.removeAllOutgoing ?= true
   options.relations.removeAllIncoming ?= true
@@ -19,13 +18,12 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
       includeRelationships: options.relations.removeAllOutgoing and options.relations.removeAllOutgoing
     @removeNode opts, cb
 
-  schema.pre 'save', (next) ->
+  schema.pre 'save', true, (next, done) ->
     # Attach node
     doc = @
-    return next() if options.storeNodeID isnt true
-    doc.getNode { forceCreation: true }, (err, node) ->
-      # Is made in findOrCreateCorrespondingNode -> doc._node_id = node.id if node
-      next()
+    next()
+    doc.getNode { forceCreation: true }, done
+      
 
   
 
