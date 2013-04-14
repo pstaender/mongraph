@@ -10,19 +10,22 @@
     "url": "git://github.com:pstaender/mongraph.git"
   },
   "scripts": {
-    "test": "mocha",
-    "build": "coffee -cbo lib src",
+    "test": "coffee --map -cb test src && mocha",
+    "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",
+    "build": "npm run clean && coffee -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",
     "documentation": "docco ./src/*.coffee"
   },
   "devDependencies": {
-    "coffee-script": "~1.6",
+    "coffee-script": "~1.6.1",
     "mocha": "~1.9",
     "expect.js": "~0.2",
     "should": "~1.2",
     "mongoose": "~3.6",
     "neo4j": "~0.2",
-    "docco": "~0.6"
+    "docco": "~0.6",
+    "docco": "~0.6",
+    "source-map-support": "~0.1.2"
   },
   "dependencies": {
     "underscore.string": "~2.3",

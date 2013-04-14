@@ -114,9 +114,9 @@ You can query the results with the MongoDB query:
 * mongoose ORM <https://github.com/learnboost/mongoose> `npm install mongoose`
 * Neo4j REST API client by thingdom <https://github.com/thingdom/node-neo4j> `npm install neo4j`
 
-### Example 
+### Examples and Tests
 
-You'll find examples in `test/tests.coffee` and `examples/`
+You'll find examples in `test/tests.coffee` and `examples/`.
 
 ### License
 
@@ -130,8 +130,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### TODO's
 
-* caching of loaded Nodes and Documents
-* avoid loading all documents if we have a specific mongodb query
-* benchmark
-* more examples, documentation and better readme
-* refactor code (especially `processtools`)
+  * caching of loaded Nodes and Documents
+  * avoid loading all documents if we have a specific mongodb query (particular done already)
+  * benchmark
+  * more examples, documentation and better readme
+  * refactor `processtools` and create seperate extensions for node, path and relationship (neo4j)
+
+### Known issue
+
+Currently we have more nodes count after the test than we had before… actually they should be equal because they (all) get deleted with the corresponding documents.
+
+For now: this is definetly an issue but should have no effect on daily usage because all relationships get deleted correctly and we are always working with node(s) of existing documents.

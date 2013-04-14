@@ -55,36 +55,66 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         cb(err, map, options) if typeof cb is 'function'
 
   #### Loads the equivalent node to this Document 
-  Document::findCorrespondingNode = (cb, doCreateIfNotExists = false) ->
+  Document::findCorrespondingNode = (options, cb) ->
+    {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
     collectionName = doc.constructor.collection.name
     id = processtools.getObjectIDAsString(doc)
+
+    # Difference between doCreateIfNotExists and forceCreation:
+    #
+    #   * doCreateIfNotExists -> persist the node if no corresponding node exists
+    #   * forceCreation -> forces to create a node
+    #
+    # @forceCreation: this is needed because mongoose marks each document as
+    # doc.new = true (which is checked to prevent accidently creating orphaned nodes).
+    # As long it is 'init' doc.new stays true, but we need that to complete the 'pre' 'save' hook
+    # (see -> mongraphMongoosePlugin) 
+
+    options.doCreateIfNotExists ?= false
+    options.forceCreation ?= false
+
     # Find equivalent node in graphdb
+    
     # TODO: cache existing node
-    # TODO: replace with graphdb.getNodeById,
-    # but for that we need always the node id stored in this document (problem with mongoose plugin)
-    graphdb.getIndexedNode collectionName, '_id', id, (foundErr, node) ->
-      node.document = doc if node# cache  
-      if doCreateIfNotExists and not node
-        # create new node and save
-        node = graphdb.createNode( _id: id, collection: collectionName )
-        if globalOptions.storeDocumentInGraphDatabase
-          # Store mongodb record in graphdb as well
-          # e.g. { getters: true }
-          # see -> http://mongoosejs.com/docs/api.html#document_Document-toObject
-          node.data = doc.toObject(globalOptions.storeDocumentInGraphDatabase)
-        node.save (saveErr) ->
-          # index node
-          return cb(saveErr, node) if saveErr
-          node.index collectionName, '_id', id, (indexErr) ->
-            # cache node, not implemented
-            node.document = doc # cache
-            return cb(indexErr, node)
-      else        
-        cb(null, node) if typeof cb is 'function'
+    
+    _processNode = (node, doc, cb) ->
+      # store document data also als in node -> untested and not recommend
+      # known issue: neo4j doesn't store deeper levels of nested objects...
+      if globalOptions.storeDocumentInGraphDatabase
+        node.data = doc.toObject(globalOptions.storeDocumentInGraphDatabase)
+        node.save()
+      # store node_id on document
+      doc._node_id = node.id
+      cb(null, node)
+
+    if doc.isNew is true and options.forceCreation isnt true
+      cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null)
+    else if doc._node_id
+      graphdb.getNodeById doc._node_id, (errFound, node) ->
+        if errFound
+          cb(errFound, node)
+        else
+          _processNode(node,doc,cb)
+    else if options.doCreateIfNotExists or options.forceCreation is true
+      # create a new one
+      node = graphdb.createNode( _id: id, collection: collectionName )
+      node.save (errSave, node) ->
+        if errSave
+          cb(errSave, node)
+        else
+          # do index, but we don't use it anymore
+          # TODO: remove maybe? maybe it can be used to query this way:
+          # getIndexedNode '_id', doc._id ...
+          node.index(collectionName, '_id', id)
+          _processNode(node, doc, cb) 
+    else
+      cb(null,null)
 
   #### Finds or create equivalent Node to this Document
-  Document::findOrCreateCorrespondingNode = (cb) -> @findCorrespondingNode(cb, true)
+  Document::findOrCreateCorrespondingNode = (options, cb) ->
+    {options, cb} = processtools.sortOptionsAndCallback(options,cb)
+    @findCorrespondingNode(options, cb)
   
   # Recommend to use this method instead of `findOrCreateCorrespondingNode`
   # shortcutmethod -> findOrCreateCorrespondingNode
@@ -135,7 +165,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     # both directions
     self = @
     found = []
-    @createRelationshipTo doc, typeOfRelationship, attributes, (err, first) ->
+    self.createRelationshipTo doc, typeOfRelationship, attributes, (err, first) ->
       return cb(err) if err
       found.push(first)
       doc.createRelationshipTo self, typeOfRelationship, attributes, (err, second) ->
@@ -158,7 +188,7 @@ module.exports = (mongoose, graphdb, globalOptions) ->
   # * action: (RETURN|DELETE|...) (all other actions wich can be used in cypher)
   # * processPart: (relationship|path|...) (depends on the result you expect from our query)
   # * loadDocuments: (true|false)
-  # * endNode: '' (can be a node object or an nodeID)
+  # * endNode: '' (can be a node object or a nodeID)
   Document::queryRelationships = (typeOfRelationship, options, cb) ->
     _s = require('underscore.string')
     # options can be a cypher query as string
@@ -176,6 +206,8 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     doc = @
     id = processtools.getObjectIDAsString(doc)
     @getNode (nodeErr, fromNode) ->
+      # if no node is found
+      return cb(nodeErr, null) if nodeErr
       cypher = """
                 START a = node(%(id)s)%(endNode)s
                 MATCH (a)%(incoming)s[relation%(relation)s]%(outgoing)s(b)
@@ -245,6 +277,25 @@ module.exports = (mongoose, graphdb, globalOptions) ->
     options.action = 'DELETE'
     @queryRelationships typeOfRelationship, options, cb
 
+  #### Delete node including all incoming and outgoing relationships
+  Document::removeNode = (options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    # we don't distinguish between incoming and outgoing relationships here
+    # would it make sense?! not sure...
+    options.includeRelationships ?= true
+    doc = @
+    doc.getNode (err, node) ->
+      # if we have an error or no node found (as expected)
+      if err or typeof node isnt 'object'
+        return cb(err or new Error('No corresponding node found to document #'+doc._id), node) if typeof cb is 'function'
+      else
+        cypher = """
+          START n = node(#{node.id})
+          MATCH n-[r]-()
+          DELETE n#{if options.includeRelationships then ', r' else ''}
+        """
+        _queryGraphDB(cypher, options, cb)
+
   #### Returns the shortest path between this and another document
   Document::shortestPathTo = (doc, typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
@@ -259,3 +310,35 @@ module.exports = (mongoose, graphdb, globalOptions) ->
         RETURN p;
       """
       from.queryGraph(query, options, cb)
+
+  # Document::removeWithNode = (options, cb) ->
+  #   {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+  #   doc = @
+  #   options.removeAllOutgoing ?= true
+  #   options.removeAllIncoming ?= true
+  #   if options.removeAllOutgoing && options.removeAllOutgoing
+  #     direction = 'both'
+  #   else if options.removeAllOutgoing
+  #     direction = 'outgoing'
+  #   else if options.removeAllIncoming
+  #     direction = 'incoming'
+  #   # console.log(doc._id, doc.name)
+  #   doc.getNode (errGettingNode, node) ->
+  #     # console.log 'remove', doc.name, direction
+  #     if direction is 'both'
+  #       doc.removeNode (err) ->
+  #         doc.remove(cb)
+  #     else
+  #       doc.removeRelationships '*', { direction: direction } , (errRemoveRelationships) ->
+  #         node.delete (errDeletingNode) ->
+  #           # node will be delete, if removeAllOutgoing and removeAllIncoming is set to true
+  #           # TODO: maybe pass a count of deleted relationships?!
+  #           # Collect all errors
+  #           errorMessage = []
+  #           for error in [ errGettingNode or null, errRemoveRelationships or null, errDeletingNode or null ]
+  #             message = error?.message or error
+  #             errorMessage.push(message) if message
+  #           errorMessage = if errorMessage.length > 0 then errorMessage.join(', ') else null
+  #           if typeof cb is 'function'
+  #             cb(errorMessage,null) if errorMessage
+  #             doc.remove(cb)
