@@ -8,6 +8,13 @@ processtools = require('./processtools')
 
 module.exports = (graphdb, mongoose, options) ->
   #### Adding document methods on node(s)
+
+  # Check that we don't override existing functions
+  if options.overwriteProtypeFunctions isnt true
+    node = graphdb.createNode()
+    for functionName in [ 'getDocument', 'getMongoId', 'getCollectionName' ]
+      throw new Error("Will not override neo4j::Node.prototype.#{functionName}") unless typeof node.constructor::[functionName] is 'undefined'
+
   
   # Is needed for prototyping
   node = graphdb.createNode()

@@ -10,7 +10,7 @@
     "url": "git://github.com:pstaender/mongraph.git"
   },
   "scripts": {
-    "test": "coffee --map -cb test src && mocha",
+    "test": "coffee --map -cb test src && mocha; npm run clean",
     "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",
     "build": "npm run clean && coffee -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",

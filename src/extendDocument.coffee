@@ -11,18 +11,16 @@ processtools = require('./processtools')
 
 module.exports = (mongoose, graphdb, globalOptions) ->
 
+  # Check that we don't override existing functions
+  if globalOptions.overwriteProtypeFunctions isnt true
+    for functionName in [ 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
+      throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
+
   Document = mongoose.Document
 
   processtools.setMongoose mongoose
 
   node = graphdb.createNode()
-
-  #### Can be used to make native queries on neo4j
-  # TODO: helpful / best practice? not sure... -> instead you should query directly via neo4j module
-  Document::_graphdb = {
-    # handler for using for custom queries
-    db: graphdb
-  }
 
   #### Private method to query neo4j directly
   #### options -> see Document::queryRelationships
@@ -311,34 +309,3 @@ module.exports = (mongoose, graphdb, globalOptions) ->
       """
       from.queryGraph(query, options, cb)
 
-  # Document::removeWithNode = (options, cb) ->
-  #   {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-  #   doc = @
-  #   options.removeAllOutgoing ?= true
-  #   options.removeAllIncoming ?= true
-  #   if options.removeAllOutgoing && options.removeAllOutgoing
-  #     direction = 'both'
-  #   else if options.removeAllOutgoing
-  #     direction = 'outgoing'
-  #   else if options.removeAllIncoming
-  #     direction = 'incoming'
-  #   # console.log(doc._id, doc.name)
-  #   doc.getNode (errGettingNode, node) ->
-  #     # console.log 'remove', doc.name, direction
-  #     if direction is 'both'
-  #       doc.removeNode (err) ->
-  #         doc.remove(cb)
-  #     else
-  #       doc.removeRelationships '*', { direction: direction } , (errRemoveRelationships) ->
-  #         node.delete (errDeletingNode) ->
-  #           # node will be delete, if removeAllOutgoing and removeAllIncoming is set to true
-  #           # TODO: maybe pass a count of deleted relationships?!
-  #           # Collect all errors
-  #           errorMessage = []
-  #           for error in [ errGettingNode or null, errRemoveRelationships or null, errDeletingNode or null ]
-  #             message = error?.message or error
-  #             errorMessage.push(message) if message
-  #           errorMessage = if errorMessage.length > 0 then errorMessage.join(', ') else null
-  #           if typeof cb is 'function'
-  #             cb(errorMessage,null) if errorMessage
-  #             doc.remove(cb)
