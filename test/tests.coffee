@@ -75,7 +75,6 @@ describe "Mongraph", ->
         # alice -> bob -> charles -> zoe
         # bob -> zoe
         # alice <- zoe
-        #
         # **visits*
         # alice -> bar
         # alice -> pub
@@ -153,6 +152,8 @@ describe "Mongraph", ->
               mongraph.processtools.populateResultWithDocuments foundRelationships, (err, populatedRelationships) ->
                 expect(err).to.be null
                 expect(populatedRelationships).to.have.length 1
+                expect(populatedRelationships[0].from).to.be.an Object
+                expect(populatedRelationships[0].start).to.be.an Object
                 expect(String(populatedRelationships[0].from._id)).to.be.equal _fromID
                 expect(String(populatedRelationships[0].to._id)).to.be.equal _toID
                 fromNode.delete ->
@@ -379,11 +380,6 @@ describe "Mongraph", ->
           expect(relationships[0].data.since).to.be.equal 'years'
           done()
 
-      it 'expect to get incoming and outgoing relationships as counted number', (done) ->
-        alice.allRelationships 'knows', { countRelationships: true }, (err, count) ->
-          expect(count).to.be.equal 2
-          done()
-
       it 'expect to get all related documents attached to relationships', (done) ->
         alice.allRelationships 'knows', (err, relationships) ->
           expect(relationships).to.be.an 'array'
@@ -397,10 +393,10 @@ describe "Mongraph", ->
           done()
 
       it 'expect to get outgoing relationships+documents from a specific collection', (done) ->
-        alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships) ->
+        alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships, options) ->
           data = {}
           for relationship in relationships
-            data[relationship.to.name] = true
+            data[relationship.to.name] = true if relationship.to?.name
           expect(data).to.only.have.keys( 'Bar', 'Pub' )
           expect(relationships).to.have.length 2
           expect(err).to.be null

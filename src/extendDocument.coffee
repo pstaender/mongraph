@@ -30,14 +30,15 @@ module.exports = (globalOptions) ->
   #### options -> see Document::queryRelationships
   _queryGraphDB = (cypher, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    options.loadDocuments ?= true
-    options.countRelationships ?= false
     # TODO: type check
-    graphdb.query cypher, (err, map) ->
-      err.query = cypher if err
+    graphdb.query cypher, null, (errGraph, map) ->
       # Adding cypher query for better debugging
-      options.cypherQuery = cypher
-      # TODO: would it be helpful to have also the direct result?
+      # err.query = cypher if err
+      options.debug ?= false
+      options.debug = {} if options.debug
+      options.debug.cypher = cypher if options.debug
+      options.loadDocuments ?= true # load documents from mongodb
+      # TODO: would it be helpful to have also the `native` result?
       # options.graphResult = map
       if options.loadDocuments and map?.length > 0
         # extract from result
@@ -48,13 +49,13 @@ module.exports = (globalOptions) ->
             # return first first property otherwise
             result[Object.keys(result)[0]]
         if processtools.constructorNameOf(data[0]) is 'Relationship'
-          processtools.loadDocumentsFromRelationshipArray data, options, cb
+          processtools.populateResultWithDocuments data, options, cb
         # TODO: distinguish between 'Path', 'Node' etc ...
         else
-          processtools.loadDocumentsFromNodeArray data, options, cb
+          processtools.populateResultWithDocuments data, options, cb
       else
         # prevent `undefined is not a function` if no cb is given
-        cb(err, map, options) if typeof cb is 'function'
+        cb(errGraph, map || null, options) if typeof cb is 'function'
 
   #### Loads the equivalent node to this Document 
   Document::findCorrespondingNode = (options, cb) ->
@@ -191,7 +192,7 @@ module.exports = (globalOptions) ->
   # * processPart: (relationship|path|...) (depends on the result you expect from our query)
   # * loadDocuments: (true|false)
   # * endNode: '' (can be a node object or a nodeID)
-  Document::queryRelationships = (typeOfRelationship, options, cb) ->    
+  Document::queryRelationships = (typeOfRelationship, options, cb) ->
     # options can be a cypher query as string
     options = { query: options } if typeof options is 'string'
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
@@ -200,7 +201,8 @@ module.exports = (globalOptions) ->
     typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
     options.direction ?= 'both'
     options.action ?= "RETURN"
-    options.processPart ?= "relation"    
+    options.processPart ?= "relation"   
+    options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
     options.endNode ?= ""
     options.endNode = endNode.id if typeof endNode is 'object'    
@@ -235,18 +237,21 @@ module.exports = (globalOptions) ->
   Document::allRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'both'
+    options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
 
   #### Loads incoming relationships
   Document::incomingRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'incoming'
+    options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
 
   #### Loads outgoing relationships
   Document::outgoingRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     options.direction = 'outgoing'
+    options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
   
   #### Remove outgoing relationships to a specific Document
@@ -288,7 +293,7 @@ module.exports = (globalOptions) ->
     doc.getNode (err, node) ->
       # if we have an error or no node found (as expected)
       if err or typeof node isnt 'object'
-        return cb(err or new Error('No corresponding node found to document #'+doc._id), node) if typeof cb is 'function'
+        return cb(err || new Error('No corresponding node found to document #'+doc._id), node) if typeof cb is 'function'
       else
         cypher = """
           START n = node(#{node.id})

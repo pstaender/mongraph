@@ -2,6 +2,7 @@ ObjectId = require('bson').ObjectID
 Join = require('join')
 
 # private
+# dbhandler
 mongoose = null
 neo4j    = null
 
@@ -16,6 +17,16 @@ sortOptionsAndCallback = (options, cb) ->
     { options: {}, cb: options }
   else
     { options: options or {}, cb: cb }
+
+sortJoins = (args) ->
+  args = Array.prototype.slice.call(args)
+  returns = { errors: [] , result: [] }
+  for arg in args
+    returns.errors.push(arg[0]) if arg[0]
+    returns.errors.push(arg[1]) if arg[1]
+  returns.errors = if returns.errors.length > 0 then new Error(returns.errors.join(", ")) else null 
+  returns.result = if returns.result.length > 0 then returns.result else null
+  returns
 
 # extract the constructor name as string
 constructorNameOf = (f) ->
@@ -54,149 +65,6 @@ getObjectIDsAsArray = (mixed) ->
   else
     ids = [ getObjectIDAsString(mixed) ]
   ids
-
-# TODO: make simpler queries (to neo4j + mongodb) -> only by id's
-loadDocumentsWithConditions = (documents, conditions, options, cb) ->
-  {options,cb} = sortOptionsAndCallback(options,cb)
-  # collections with ids
-  collectionIds = {}
-  # ids with collection
-  allIds = {}
-  # Sort ids + collections
-  for doc in documents
-    collectionName = doc.constructor.collection.name
-    collectionIds[collectionName] ?= []
-    collectionIds[collectionName].push(doc._id)
-    allIds[doc._id] = collectionName
-  # Do one (faster) query if we have a distinct collection
-  # if we have documents found for this collection
-  if options.collection and collectionIds[options.collection]?.length > 0
-    condition = { $and: [ { _id: { $in: collectionIds[options.collection] } } , conditions ] }
-    collection = getCollectionByCollectionName(options.collection, mongoose)
-    return collection.find condition, cb
-  join = Join.create()
-  # get all documents by ids
-  for id of allIds
-    collectionName = allIds[id]
-    collection = getCollectionByCollectionName(collectionName, mongoose)
-    do (collection, id) ->
-      callback = join.add()
-      condition = { $and: [ { _id: id }, conditions ] }
-      collection.find condition, callback
-  join.when ->
-    errs = []
-    docs = []
-    for result in arguments
-      errs.push(result[0]?.message or result[0]) if result[0] # if error
-      if result[1] # if doc found
-        for record in result[1]
-          docs.push(record) 
-      
-    if errs.length > 0
-      cb(new Error(errs.join(", ")), docs) 
-    else
-      cb(null, docs)
-
-
-loadDocumentsFromNodeArray = (result, options, cb) ->
-  {options, cb} = sortOptionsAndCallback(options,cb)
-  arrayWithNodes = result[0]?.nodes
-  return cb(new Error("Couldn't find any nodes to process"), result) unless arrayWithNodes
-  # Load corresponding documents to all nodes... no other way, yet
-  # TODO: do a more economical query to graphdb or mongodb to get the document id
-  join = Join.create()
-  for node, i in arrayWithNodes
-    if node.id
-      callbackDocument = join.add()
-      node.getDocument callbackDocument
-  join.when ->
-    err = null
-    data = []
-    for item in arguments
-      err = item[0]
-      data.push item[1]
-    if options.where
-      loadDocumentsWithConditions(data, options.where, options, cb)
-    else
-      cb(err,data,options)
-
-# TODO: Merge relationships and node loading documents together
-# TODO: shrink redundant code
-loadDocumentsFromArray = (array, options, cb) ->
-  {options, cb} = sortOptionsAndCallback(options, cb)
-  specificCollection = null
-  # only sort with collection if we have one direction and a collection given
-  if options.direction isnt 'both' and options.collection
-    specificCollection = options.collection or null
-  join = Join.create()
-  results = []
-  for record, i in array
-    do (i, record) ->
-      # Ensure that we have a relationship record here
-      if record.data._to and record.data._from
-        relation = record
-        doPush = false
-        # Load documents from start and end node
-        # will be stored in relation.from and relation.to
-
-        # to side
-        {collectionName, _id} = _extractCollectionAndId(relation.data._to)
-        if not specificCollection or ( specificCollection is collectionName and options.direction = 'incoming' )
-          id = getObjectIdFromString(_id)
-          condition = if options.where and options.direction isnt 'incoming' then { $and: [ { _id: id } , options.where ] } else { _id: id }
-          callbackTo = join.add()
-          doPush = true
-          collection = getCollectionByCollectionName(collectionName, mongoose)
-          collection.findOne condition , (err, doc) ->
-            relation.to = doc
-            callbackTo(err, relation)
-
-        # from side
-        {collectionName, _id} = _extractCollectionAndId(relation.data._from)
-        if not specificCollection or specificCollection is collectionName and options.direction = 'outgoing'
-          id = getObjectIdFromString(_id)
-          condition = if options.where and options.direction isnt 'outgoing' then { $and: [ { _id: id } , options.where ] } else { _id: id }
-          callbackFrom = join.add()
-          doPush = true
-          collection = getCollectionByCollectionName(collectionName, mongoose)
-          collection.findOne condition , (err, doc) ->
-            relation.from = doc
-            callbackFrom(err, relation)
-
-        results.push(relation) if doPush
-      else
-        cb(new Error('We have no relationship here'), null)
-  join.when ->
-    # sort out results that do not fit the where query
-    if options.where
-      finalResults = []
-      for result in results
-        finalResults.push(result) if result.from and result.to
-    else
-      finalResults = results
-    cb(null, finalResults, options)
-
-# load record(s) by id from a given array
-loadDocumentsFromRelationshipArray = (graphResultset, options, cb) ->
-  {options, cb} = sortOptionsAndCallback(options,cb)
-  # return cb(new Error('Need db connection as argument'), null, graphResultset) if constructorNameOf(mongoose) isnt 'NativeConnection'
-  return cb(new Error('No Array given'), null, options) unless graphResultset?.constructor == Array or (graphResultset = getObjectIDsAsArray(graphResultset)).constructor == Array
-  # sort out all non relationship objects
-  relations = []
-  for relation, i in graphResultset
-    relations.push(relation) if constructorNameOf(relation) is 'Relationship'
-  # TODO: also implement a options.count for after querying mongodb
-  return cb(null,relations.length,options) if options.countRelationships
-  # skip it if no relationships (as expected) where found
-  # but in case we having another result object
-  # we pass it as 3rd argument so that it can be processed some other way
-  # TODO: distinguish between relationships, nodes + paths as result
-  return cb(null,null,options) unless relations.length > 0
-  # We have to query each record, because they can be stored in different collections
-  # TODO: presort collections and do "where in []" queries for each collection
-  options.graphResultset = graphResultset
-  loadDocumentsFromArray(relations, options, cb)
-  
 
 getModelByCollectionName = (collectionName, mongoose) ->
   if constructorNameOf(mongoose) is 'Mongoose'
@@ -242,8 +110,12 @@ populateResultWithDocuments = (results, options, cb) ->
     results = [ results ]
 
   # called when all documents loaded
-  final = (err, results) ->
+  final = (err) ->
     # [ null, {...}, null, ..., {...}, {...} ] ->  [ {...}, ..., {...}, {...} ]
+    # return only path if we have a path here and the option is set to restructre
+    # TODO: find a more elegant solution than this
+    if options.restructure and path?.length > 0
+      results = path
     if options.stripEmptyItems and results?.length > 0
       cleanedResults = []
       for result in results
@@ -257,84 +129,95 @@ populateResultWithDocuments = (results, options, cb) ->
   mongoose = getMongoose()  # get mongoose handler
   graphdb  = getNeo4j()     # get neo4j handler 
 
-  todo = 0 # instead of join()
-  done = 0 # instead of join.add()
+  # TODO: extend Path and Relationship objects (nit possible with prototyping here) 
 
-  # TODO: @distict collection and condition: not for reference document
+  path = null
 
+  join = Join.create()
   for result, i in results
     do (result, i) ->
+      
       ## Node
       if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id 
+        callback = join.add()
         isReferenceDocument = options.referenceDocumentID is result.data._id
         # skip if distinct collection if differ
         if options.collection and options.collection isnt result.data.collection
-          final(err, results) if done >= todo
+          callback(err, results)
         else
-          todo++
           conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where)
           options.debug.where.push(conditions) if options.debug
           collection = getCollectionByCollectionName(result.data.collection, mongoose)
           collection.findOne conditions, (err, foundDocument) ->
-            done++
             results[i].document = foundDocument
-            final(err, results) if done >= todo
+            callback(err, results)
+      
       ## Relationship
       else if constructorNameOf(result) is 'Relationship' and result.data?._from and result.data?._to
-        #### from
+        callback = join.add()
+        fromAndToJoin = Join.create()
         for point in [ 'from', 'to']
-          #do (point, i, result) ->
-          do (point) ->
-            isReferenceDocument = options.referenceDocumentID is result.data["_#{point}"]
+          intermediateCallback = fromAndToJoin.add()
+          do (point, intermediateCallback) ->
             {collectionName,_id} = _extractCollectionAndId(result.data["_#{point}"])
+            isReferenceDocument = options.referenceDocumentID is _id
             # do we have a distinct collection and this records is from another collection? skip it
             if options.collection and options.collection isnt collectionName and not isReferenceDocument 
-              final(err, results) if done >= todo
+              # remove relationship from result
+              results[i] = null
+              intermediateCallback(null,null) #  results will be taken directly from results[i]
             else
-              todo++
               conditions = _buildQueryFromIdAndCondition(_id, unless isReferenceDocument then options.where)
               options.debug.where.push(conditions) if options.debug
               collection = getCollectionByCollectionName(collectionName, mongoose)
               collection.findOne conditions, (err, foundDocument) ->
-                done++
-                results[i][point] = foundDocument
-                final(err, results) if done >= todo
+                if foundDocument and results[i]
+                  results[i][point] = foundDocument
+                else
+                  # remove relationship from result
+                  results[i] = null
+                intermediateCallback(null,null) # results will be taken directly from results[i]
+        fromAndToJoin.when ->
+          callback(null, null)
+
       ## Path
-      else if constructorNameOf(result.p) is 'Path'
-        results[i].path = Array(result.p._nodes.length)
-        path = if options.restructure then Array(result.p._nodes.length) else null
-        for node, k in result.p._nodes
+      else if constructorNameOf(result) is 'Path' or constructorNameOf(result.p) is 'Path'
+        # in some cases path is in result.p or is directly p
+        _p = result.p || result
+        results[i].path = Array(_p._nodes.length)
+        path = if options.restructure then Array(_p._nodes.length)
+        for node, k in _p._nodes
           if node._data?.self
-            do (k) ->
-              todo++
+            callback = join.add()
+            do (k, callback) ->
               graphdb.getNode node._data.self, (err, foundNode) ->
                 if foundNode?.data?._id
                   isReferenceDocument = options.referenceDocumentID is foundNode.data._id
                   collectionName = foundNode.data.collection
                   _id = foundNode.data._id
                   if options.collection and options.collection isnt collectionName and not isReferenceDocument 
-                    done++
-                    final(null, path || results) if done >= todo
+                    callback(null, path || results)
                   else
                     conditions = _buildQueryFromIdAndCondition(_id, options.where)
                     options.debug.where.push(conditions) if options.debug
                     collection = getCollectionByCollectionName(collectionName, mongoose)
                     collection.findOne conditions, (err, foundDocument) ->
-                      done++
                       if options.restructure
                         # just push the documents to the result and leave everything else away
                         path[k] = foundDocument
                       else
                         results[i].path[k] = foundDocument
-                      final(null, path || results) if done >= todo
+                      callback(null, path || results)
                 else
-                  done++
                   if options.restructure
                     path[k] = null
                   else
                     results[i].path[k] = null
-                  final(null, path || results) if done >= todo
+                  callback(null, path || results)
       else
         final(new Error("Could not detect given result type"),null)
-
-module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j}
+  
+  join.when ->
+    {error,result} = sortJoins(arguments)
+    final(error, null)
+module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j}
