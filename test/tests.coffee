@@ -8,9 +8,13 @@ mongoose   = require('mongoose')
 neo4j      = require('neo4j')
 mongraph   = require('../src/mongraph')
 cleanupDBs = true # remove all test-created documents, nodes + relationship
+nodesCount = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
 Join       = require('join')
 
 describe "Mongraph", ->
+
+  _countNodes = (cb) -> graph.query "START n=node(*) RETURN count(n)", (err, count) ->
+      cb(err, Number(count?[0]?['count(n)']) || null)
 
   # schemas and data objects
   Person = Location = alice = bob = charles = dave = elon = zoe = bar = pub = null
@@ -56,8 +60,10 @@ describe "Mongraph", ->
 
     if cleanupDBs
       # remove all records
-      Person.remove -> Location.remove -> createExampleDocuments ->
-        done()
+      _countNodes (err, count) ->
+        nodesCountBefore = count
+        Person.remove -> Location.remove -> createExampleDocuments -> 
+          done()
     else
       done()
 
@@ -93,7 +99,11 @@ describe "Mongraph", ->
         else
           callback()
     join.when (a, b) ->
-      done()
+      _countNodes (err, count) ->
+        if nodesCountBefore isnt count
+          done(new Error("Mismatch on nodes counted before (#{nodesCountBefore}) and after (#{count}) tests"))
+        else
+          done()
 
   describe 'processtools', ->
 
@@ -125,7 +135,9 @@ describe "Mongraph", ->
             expect(populatedNodes).to.have.length 1
             expect(populatedNodes[0].document).to.be.a 'object'
             expect(String(populatedNodes[0].document._id)).to.be.equal _id
-            storedNode.delete -> done()
+            storedNode.delete ->
+              done()
+            , true
 
       it 'expect to get relationships populated with the corresponding documents', (done) ->
         _fromID         = String(alice._id)
@@ -166,36 +178,47 @@ describe "Mongraph", ->
                 MATCH  p = shortestPath( a-[:connected*..3]->b )
                 RETURN p;
               """
-              graph.query query, cb
+              graph.query query, (err, result) ->
+                cb(err, result, [ fromNode, toNode, throughNode ])
+
+      _removeExampleNodes = (nodes, cb) ->
+        join = Join.create()
+        ids = for node in nodes
+          node.id
+        graph.query "START n = node(#{ids.join(",")}) MATCH n-[r?]-() DELETE n, r", (err) ->
+          cb(null, null)
 
       it 'expect to get path populated w/ corresponding documents', (done) ->
-        _createExamplePath (err, result) ->
+        _createExamplePath (err, result, exampleNodes) ->
           expect(err).to.be null
           expect(result).to.have.length 1
           options = { debug: true }
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 3
-            done()
+            _removeExampleNodes exampleNodes, ->
+              done()
 
       it 'expect to get path populated w/ corresponding documents with query', (done) ->
-        _createExamplePath (err, result) ->
+        _createExamplePath (err, result, exampleNodes) ->
           options =
             debug: true
             where: { name: /^[A-Z]/ }
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 1
             expect(populatedPath[0].name).match /^[A-Z]/
-            done()
+            _removeExampleNodes exampleNodes, ->
+              done()
 
       it 'expect to get path populated w/ corresponding documents with distinct collection', (done) ->
-        _createExamplePath (err, result) ->
+        _createExamplePath (err, result, exampleNodes) ->
           options =
             debug: true
             collection: 'locations'
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 1
             expect(populatedPath[0].name).to.be.equal 'Pub'
-            done()
+            _removeExampleNodes exampleNodes, ->
+              done()
 
   
   describe 'mongraph', ->
