@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage database with graph-database relationships",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": "Philipp Staender <philipp.staender@gmail.com>",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",
@@ -29,7 +29,6 @@
     "should": "~1.2",
     "mongoose": "~3.6",
     "neo4j": "~0.2",
-    "docco": "~0.6",
     "docco": "~0.6",
     "source-map-support": "~0.1.2"
   },

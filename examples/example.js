@@ -35,19 +35,23 @@ var print = console.log;
 print('-> monica');
 print('<- neo\n');
 
-monicaMessage.save(function(err) {
-  // after Message is stored send message
-  monicaMessage.createRelationshipTo(
-    neoMessage,
-    'sends',
-    { sendWith: 'love' }, // define some attributes on the relationship (optional)
-    function(err, relationship) {
-      // relationship created / message sended
-      if (!err)
-        print('-> '+monicaMessage.name+' sended a message to neo');
-    }
-  );
+// to work with both nodes we have to persist the documents first
+neoMessage.save(function(){
+  monicaMessage.save(function(err) {
+    // after Message is stored send message
+    monicaMessage.createRelationshipTo(
+      neoMessage,
+      'sends',
+      { sendWith: 'love' }, // define some attributes on the relationship (optional)
+      function(err, relationship) {
+        // relationship created / message sended
+        if (!err)
+          print('-> '+monicaMessage.name+' sended a message to neo');
+      }
+    );
+  });
 });
+
 
 setInterval(function(){
   // check for new messages

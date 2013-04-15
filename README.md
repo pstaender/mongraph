@@ -29,10 +29,12 @@ MongoDB is great for a lot of things but a bit weak at relationships. However Ne
 Every document which is created in MongoDB will have a corresponding node in Neo4j:
 
 ```
-  [{ _id: 51693565c977a40e28000002, _node_id: 1 }]                -> document
+             [{ _id: 5169…2, _node_id: 1 }]                 -> document in MongoDB
+                           / \
                             |
                             |
-  ({ id: 1, _id: 51693565c977a40e28000002, collection: 'people'}) -> node
+                           \ /
+  ({ id: 1, data: { _id: 5169…2, collection: 'people'} })   -> node in Neo4j
 ```
 
 Each document has an extra attribute:
@@ -47,7 +49,7 @@ Each node has extra attributes:
 Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):
 
 ```
-  (node#a) - { _from: "people:51693565c977a40e28000002", _to: "locations:51693565c977a40e28000001", _created_at: 1365849448 } - (node#b)
+  (node#a) - { _from: "people:516…2", _to: "locations:516…3", _created_at: 1365849448 } - (node#b)
 ```
 
 ### What can it do?
@@ -131,7 +133,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### TODO's
 
   * caching of loaded Nodes and Documents
-  * avoid loading all documents if we have a specific mongodb query (particular done already)
-  * benchmark
+  * avoid loading all documents if we have a specific mongodb query
+  * benchmarks
   * more examples, documentation and better readme
-  * refactor `processtools` and create seperate extensions for node, path and relationship (neo4j)
