@@ -298,7 +298,7 @@ module.exports = (globalOptions) ->
         _queryGraphDB(cypher, options, cb)
 
   #### Returns the shortest path between this and another document
-  Document::shortestPathTo = (doc, typeOfRelationship, options, cb) ->
+  Document::shortestPathTo = (doc, typeOfRelationship = '', options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     from = @
     to = doc
@@ -307,7 +307,7 @@ module.exports = (globalOptions) ->
       levelDeepness = 15
       query = """
         START a = node(#{fromNode.id}), b = node(#{toNode.id}) 
-        MATCH p = shortestPath( a-[*..#{levelDeepness}]->b )
+        MATCH p = shortestPath( a-[#{if typeOfRelationship then ':'+typeOfRelationship else ''}*..#{levelDeepness}]->b )
         RETURN p;
       """
       from.queryGraph(query, options, cb)

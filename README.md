@@ -26,7 +26,7 @@ MongoDB is great for a lot of things but a bit weak at relationships. However Ne
 
 ### What does it take?
 
-Every document which is created in MongoDB will have a corresponding node in Neo4J:
+Every document which is created in MongoDB will have a corresponding node in Neo4j:
 
 ```
   [{ _id: 51693565c977a40e28000002, _node_id: 1 }]                -> document

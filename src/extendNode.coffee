@@ -11,6 +11,8 @@ module.exports = (globalOptions) ->
   mongoose = globalOptions.mongoose
   graphdb  = globalOptions.neo4j
 
+  processtools.setNeo4j graphdb
+
   #### Adding document methods on node(s)
 
   # Is needed for prototyping

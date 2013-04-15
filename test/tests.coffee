@@ -88,7 +88,10 @@ describe "Mongraph", ->
     for record in [ alice, bob, charles, dave, elon, zoe, bar, pub ]
       do (record) ->
         callback = join.add()
-        record.remove callback
+        if typeof record?.remove is 'function'
+          record.remove callback
+        else
+          callback()
     join.when (a, b) ->
       done()
 
@@ -100,6 +103,77 @@ describe "Mongraph", ->
         expect(mongraph.processtools.getObjectIDAsString(alice)).to.match(regexID)
         expect(mongraph.processtools.getObjectIDAsString(alice._id)).to.match(regexID)
         expect(mongraph.processtools.getObjectIDAsString(String(alice._id))).to.match(regexID)
+
+    describe '#populateResultWithDocuments()', ->
+
+      it 'expect to get an error and null with options as result if the data is not usable', (done) ->
+        mongraph.processtools.populateResultWithDocuments null, { test: true }, (err, data, options) ->
+          expect(err).to.be.an Error
+          expect(data).to.be.null
+          expect(options).to.be.an Object
+          expect(options).to.have.keys 'test'
+          done()
+
+      it 'expect to get a node populated with the corresponding document', (done) ->
+        _id = String(alice._id)
+        node = graph.createNode { collection: 'people', _id: _id }
+        node.save (err, storedNode) ->
+          expect(err).to.be null
+          expect(storedNode).to.be.a node.constructor
+          mongraph.processtools.populateResultWithDocuments storedNode, { referenceDocumentId: _id }, (err, populatedNodes, options) ->
+            expect(err).to.be null
+            expect(populatedNodes).to.have.length 1
+            expect(populatedNodes[0].document).to.be.a 'object'
+            expect(String(populatedNodes[0].document._id)).to.be.equal _id
+            storedNode.delete -> done()
+
+      it 'expect to get relationships populated with the corresponding documents', (done) ->
+        _fromID         = String(alice._id)
+        _toID           = String(bob._id)
+        collectionName  = alice.constructor.collection.name
+        from            = graph.createNode { collection: 'people', _id: _fromID }
+        to              = graph.createNode { collection: 'people', _id: _toID }
+        from.save (err, fromNode) -> to.save (err, toNode) ->
+          fromNode.createRelationshipTo toNode, 'connected', { _from: collectionName+":"+_fromID, _to: collectionName+":"+_toID }, (err) ->
+            expect(err).to.be null
+            toNode.incoming 'connected', (err, foundRelationships) ->
+              expect(foundRelationships).to.have.length 1
+              mongraph.processtools.populateResultWithDocuments foundRelationships, (err, populatedRelationships) ->
+                expect(err).to.be null
+                expect(populatedRelationships).to.have.length 1
+                expect(String(populatedRelationships[0].from._id)).to.be.equal _fromID
+                expect(String(populatedRelationships[0].to._id)).to.be.equal _toID
+                fromNode.delete ->
+                  toNode.delete ->
+                    done()
+                  , true
+                , true
+
+      it 'expect to get path populated with the corresponding documents', (done) ->
+        _fromID         = String(alice._id)
+        _throughID      = String(bob._id)
+        _toID           = String(pub._id)
+        people          = alice.constructor.collection.name
+        locations       = pub.constructor.collection.name
+        from            = graph.createNode { collection: 'people', _id: _fromID }
+        through         = graph.createNode { collection: 'people', _id: _throughID }
+        to              = graph.createNode { collection: 'locations', _id: _toID }
+        from.save (err, fromNode) -> through.save (err, throughNode) -> to.save (err, toNode) ->
+          fromNode.createRelationshipTo throughNode, 'connected', { _from: people+':'+_fromID,    _to: people+':'+_throughID }, (err) ->
+            throughNode.createRelationshipTo toNode, 'connected', { _from: people+':'+_throughID, _to: locations+':'+_toID }, (err) ->
+              query = """
+                START  a = node(#{fromNode.id}), b = node(#{toNode.id}) 
+                MATCH  p = shortestPath( a-[:connected*..3]->b )
+                RETURN p;
+              """
+              graph.query query, (err, result) ->
+                expect(err).to.be null
+                expect(result).to.have.length 1
+                mongraph.processtools.populateResultWithDocuments result, (err, populatedPath) ->
+                  expect(populatedPath).to.have.length 1
+                  expect(populatedPath[0].path).to.have.length 3
+                  done()
+
   
   describe 'mongraph', ->
 

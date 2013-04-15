@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage database with graph-database relationships",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "Philipp Staender",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",
@@ -9,6 +9,12 @@
     "type": "git",
     "url": "git://github.com:pstaender/mongraph.git"
   },
+  "keywords": [
+    "mongodb",
+    "neo4j",
+    "mongoose",
+    "graphdatabase"
+  ],
   "scripts": {
     "test": "coffee --map -cb test src && mocha; npm run clean",
     "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",

@@ -3,9 +3,13 @@ Join = require('join')
 
 # private
 mongoose = null
+neo4j    = null
 
-setMongoose = (mongooseHandler) ->
-  mongoose = mongooseHandler
+setMongoose = (mongooseHandler) -> mongoose = mongooseHandler
+getMongoose = -> mongoose
+
+setNeo4j = (neo4jHandler) -> neo4j = neo4jHandler
+getNeo4j = -> neo4j
 
 sortOptionsAndCallback = (options, cb) ->
   if typeof options is 'function'
@@ -15,7 +19,7 @@ sortOptionsAndCallback = (options, cb) ->
 
 # extract the constructor name as string
 constructorNameOf = (f) ->
-  f?.constructor?.toString().match(/function\s+(.+?)\(/)[1]?.trim()
+  f?.constructor?.toString().match(/function\s+(.+?)\(/)?[1]?.trim() || null
 
 _extractCollectionAndId = (s) ->
   { collectionName: parts[0], _id: parts[1] } if (parts = s.split(":"))
@@ -205,4 +209,82 @@ getCollectionByCollectionName = (collectionName, mongoose) ->
   mongoose.models[modelName] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
 
 
-module.exports = {getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose}
+populateResultWithDocuments = (results, options, cb) ->
+  # TODO: reduce mongodb queries by sorting ids to collection(s)
+  # and query them once per collection with $in : [ ids... ] ...
+  {options, cb} = sortOptionsAndCallback(options,cb)
+  options.count ?= false
+  unless results instanceof Object
+    return cb(new Error('Object is needed for processing'), null, options)
+  else unless results instanceof Array
+    # put in array to iterate
+    results = [ results ]
+  # else if constructorNameOf(results[0]) is 'Path'
+  #   results = [ results[0].p ]
+
+  # called when all documents loaded
+  final = (err, results) ->
+    cb(null, results, options)
+
+  mongoose = getMongoose()  # get mongoose handler
+  graphdb  = getNeo4j()     # get neo4j handler 
+
+  todo = 0
+  done = 0
+
+  for result, i in results
+    do (result, i) ->
+      ## Node
+      if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id
+        todo++
+        conditions = { _id: result.data._id }
+        collection = getCollectionByCollectionName(result.data.collection, mongoose)
+        collection.findOne conditions, (err, foundDocument) ->
+          done++
+          results[i].document = foundDocument
+          final(err, results) if done >= todo
+      ## Relationship
+      else if constructorNameOf(result) is 'Relationship' and result.data?._from and result.data?._to
+        todo++ # from
+        todo++ # to
+        #### from
+        {collectionName,_id} = _extractCollectionAndId(result.data._from)
+        conditions = { _id: _id }
+        collection = getCollectionByCollectionName(collectionName, mongoose)
+        collection.findOne conditions, (err, foundDocument) ->
+          done++
+          results[i].from = foundDocument
+          final(err, results) if done >= todo
+        #### to
+        {collectionName,_id} = _extractCollectionAndId(result.data._to)
+        conditions = { _id: _id }
+        collection = getCollectionByCollectionName(collectionName, mongoose)
+        collection.findOne conditions, (err, foundDocument) ->
+          done++
+          results[i].to = foundDocument
+          final(err, results) if done >= todo
+      else if constructorNameOf(result.p) is 'Path'
+        results[i].path = Array(result.p._nodes.length)
+        for node, k in result.p._nodes
+          if node._data?.self
+            todo++
+            do (k) ->
+              graphdb.getNode node._data.self, (err, foundNode) ->
+                if foundNode?.data?._id
+                  # console.log foundNode?.data?._id, k
+                  collectionName = foundNode.data.collection
+                  _id = foundNode.data._id
+                  conditions = { _id: _id }
+                  collection = getCollectionByCollectionName(collectionName, mongoose)
+                  collection.findOne conditions, (err, foundDocument) ->
+                    done++
+                    results[i].path[k] = foundDocument
+                    final(null, results) if done >= todo
+                else
+                  done++
+                  results[i].path[k] = null
+                  final(null, results) if done >= todo
+      else
+        final(new Error("Could not detect given result type"),null)
+
+module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, loadDocumentsFromRelationshipArray, loadDocumentsFromNodeArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j}
