@@ -24,6 +24,15 @@ constructorNameOf = (f) ->
 _extractCollectionAndId = (s) ->
   { collectionName: parts[0], _id: parts[1] } if (parts = s.split(":"))
 
+_buildQueryFromIdAndCondition = (_id_s, condition) ->
+  if _id_s?.constructor is Array
+    idCondition = { _id: { $in: _id } }
+  else if _id_s
+    idCondition = { _id: String(_id_s) }
+  else
+    return {}
+  if typeof condition is 'object' and condition and Object.keys(condition)?.length > 0 then { $and: [ idCondition, condition ] } else idCondition
+
 # extract id as string from a mixed argument
 getObjectIDAsString = (obj) ->
   if typeof obj is 'string'
@@ -213,77 +222,118 @@ populateResultWithDocuments = (results, options, cb) ->
   # TODO: reduce mongodb queries by sorting ids to collection(s)
   # and query them once per collection with $in : [ ids... ] ...
   {options, cb} = sortOptionsAndCallback(options,cb)
+  
   options.count ?= false
+  options.restructure ?= true # do some useful restructure
+  options.referenceDocumentID ?= null # document which is our base document, import for where queries
+  options.referenceDocumentID = String(options.referenceDocumentID) if options.referenceDocumentID
+  options.collection ?= null # distinct collection
+  options.where ?= null # query documents
+  options.debug = if options.debug then {} else null
+  options.stripEmptyItems ?= true
+  if options.debug
+    options.debug.where ?= []
+    # options.debug.cypher ?= []
+
   unless results instanceof Object
     return cb(new Error('Object is needed for processing'), null, options)
   else unless results instanceof Array
     # put in array to iterate
     results = [ results ]
-  # else if constructorNameOf(results[0]) is 'Path'
-  #   results = [ results[0].p ]
 
   # called when all documents loaded
   final = (err, results) ->
-    cb(null, results, options)
+    # [ null, {...}, null, ..., {...}, {...} ] ->  [ {...}, ..., {...}, {...} ]
+    if options.stripEmptyItems and results?.length > 0
+      cleanedResults = []
+      for result in results
+        cleanedResults.push(result) if result?
+      cb(null, cleanedResults, options)
+    else
+      cb(null, results, options)
+
+  # TODO: if distinct collection
 
   mongoose = getMongoose()  # get mongoose handler
   graphdb  = getNeo4j()     # get neo4j handler 
 
-  todo = 0
-  done = 0
+  todo = 0 # instead of join()
+  done = 0 # instead of join.add()
+
+  # TODO: @distict collection and condition: not for reference document
 
   for result, i in results
     do (result, i) ->
       ## Node
-      if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id
-        todo++
-        conditions = { _id: result.data._id }
-        collection = getCollectionByCollectionName(result.data.collection, mongoose)
-        collection.findOne conditions, (err, foundDocument) ->
-          done++
-          results[i].document = foundDocument
+      if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id 
+        isReferenceDocument = options.referenceDocumentID is result.data._id
+        # skip if distinct collection if differ
+        if options.collection and options.collection isnt result.data.collection
           final(err, results) if done >= todo
+        else
+          todo++
+          conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where)
+          options.debug.where.push(conditions) if options.debug
+          collection = getCollectionByCollectionName(result.data.collection, mongoose)
+          collection.findOne conditions, (err, foundDocument) ->
+            done++
+            results[i].document = foundDocument
+            final(err, results) if done >= todo
       ## Relationship
       else if constructorNameOf(result) is 'Relationship' and result.data?._from and result.data?._to
-        todo++ # from
-        todo++ # to
         #### from
-        {collectionName,_id} = _extractCollectionAndId(result.data._from)
-        conditions = { _id: _id }
-        collection = getCollectionByCollectionName(collectionName, mongoose)
-        collection.findOne conditions, (err, foundDocument) ->
-          done++
-          results[i].from = foundDocument
-          final(err, results) if done >= todo
-        #### to
-        {collectionName,_id} = _extractCollectionAndId(result.data._to)
-        conditions = { _id: _id }
-        collection = getCollectionByCollectionName(collectionName, mongoose)
-        collection.findOne conditions, (err, foundDocument) ->
-          done++
-          results[i].to = foundDocument
-          final(err, results) if done >= todo
+        for point in [ 'from', 'to']
+          #do (point, i, result) ->
+          do (point) ->
+            isReferenceDocument = options.referenceDocumentID is result.data["_#{point}"]
+            {collectionName,_id} = _extractCollectionAndId(result.data["_#{point}"])
+            # do we have a distinct collection and this records is from another collection? skip it
+            if options.collection and options.collection isnt collectionName and not isReferenceDocument 
+              final(err, results) if done >= todo
+            else
+              todo++
+              conditions = _buildQueryFromIdAndCondition(_id, unless isReferenceDocument then options.where)
+              options.debug.where.push(conditions) if options.debug
+              collection = getCollectionByCollectionName(collectionName, mongoose)
+              collection.findOne conditions, (err, foundDocument) ->
+                done++
+                results[i][point] = foundDocument
+                final(err, results) if done >= todo
+      ## Path
       else if constructorNameOf(result.p) is 'Path'
         results[i].path = Array(result.p._nodes.length)
+        path = if options.restructure then Array(result.p._nodes.length) else null
         for node, k in result.p._nodes
           if node._data?.self
-            todo++
             do (k) ->
+              todo++
               graphdb.getNode node._data.self, (err, foundNode) ->
                 if foundNode?.data?._id
-                  # console.log foundNode?.data?._id, k
+                  isReferenceDocument = options.referenceDocumentID is foundNode.data._id
                   collectionName = foundNode.data.collection
                   _id = foundNode.data._id
-                  conditions = { _id: _id }
-                  collection = getCollectionByCollectionName(collectionName, mongoose)
-                  collection.findOne conditions, (err, foundDocument) ->
+                  if options.collection and options.collection isnt collectionName and not isReferenceDocument 
                     done++
-                    results[i].path[k] = foundDocument
-                    final(null, results) if done >= todo
+                    final(null, path || results) if done >= todo
+                  else
+                    conditions = _buildQueryFromIdAndCondition(_id, options.where)
+                    options.debug.where.push(conditions) if options.debug
+                    collection = getCollectionByCollectionName(collectionName, mongoose)
+                    collection.findOne conditions, (err, foundDocument) ->
+                      done++
+                      if options.restructure
+                        # just push the documents to the result and leave everything else away
+                        path[k] = foundDocument
+                      else
+                        results[i].path[k] = foundDocument
+                      final(null, path || results) if done >= todo
                 else
                   done++
-                  results[i].path[k] = null
-                  final(null, results) if done >= todo
+                  if options.restructure
+                    path[k] = null
+                  else
+                    results[i].path[k] = null
+                  final(null, path || results) if done >= todo
       else
         final(new Error("Could not detect given result type"),null)
 

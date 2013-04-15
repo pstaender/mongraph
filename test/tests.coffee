@@ -149,7 +149,7 @@ describe "Mongraph", ->
                   , true
                 , true
 
-      it 'expect to get path populated with the corresponding documents', (done) ->
+      _createExamplePath = (cb) ->
         _fromID         = String(alice._id)
         _throughID      = String(bob._id)
         _toID           = String(pub._id)
@@ -166,13 +166,36 @@ describe "Mongraph", ->
                 MATCH  p = shortestPath( a-[:connected*..3]->b )
                 RETURN p;
               """
-              graph.query query, (err, result) ->
-                expect(err).to.be null
-                expect(result).to.have.length 1
-                mongraph.processtools.populateResultWithDocuments result, (err, populatedPath) ->
-                  expect(populatedPath).to.have.length 1
-                  expect(populatedPath[0].path).to.have.length 3
-                  done()
+              graph.query query, cb
+
+      it 'expect to get path populated w/ corresponding documents', (done) ->
+        _createExamplePath (err, result) ->
+          expect(err).to.be null
+          expect(result).to.have.length 1
+          options = { debug: true }
+          mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
+            expect(populatedPath).to.have.length 3
+            done()
+
+      it 'expect to get path populated w/ corresponding documents with query', (done) ->
+        _createExamplePath (err, result) ->
+          options =
+            debug: true
+            where: { name: /^[A-Z]/ }
+          mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
+            expect(populatedPath).to.have.length 1
+            expect(populatedPath[0].name).match /^[A-Z]/
+            done()
+
+      it 'expect to get path populated w/ corresponding documents with distinct collection', (done) ->
+        _createExamplePath (err, result) ->
+          options =
+            debug: true
+            collection: 'locations'
+          mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
+            expect(populatedPath).to.have.length 1
+            expect(populatedPath[0].name).to.be.equal 'Pub'
+            done()
 
   
   describe 'mongraph', ->
