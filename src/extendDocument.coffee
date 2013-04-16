@@ -16,7 +16,7 @@ module.exports = (globalOptions) ->
   graphdb  = globalOptions.neo4j
 
   # Check that we don't override existing functions
-  if globalOptions.overwriteProtypeFunctions isnt true
+  if globalOptions.overrideProtypeFunctions isnt true
     for functionName in [ 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 

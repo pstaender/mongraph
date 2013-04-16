@@ -4,6 +4,7 @@ _ = require('underscore')
 
 # bare config 
 config = { options: {} }
+alreadyInitialized = false
 
 init = (options) ->
 
@@ -13,7 +14,7 @@ init = (options) ->
   _.extend(config.options, options)
   config.mongoose = options.mongoose
   config.graphdb  = options.neo4j
-  config.options.overwriteProtypeFunctions ?= false
+  config.options.overrideProtypeFunctions ?= false
   config.options.storeDocumentInGraphDatabase ?= false # TODO: implement
   config.options.cacheNodes ?= true # TODO: implement
   config.options.loadMongoDBRecords ?= true
@@ -24,6 +25,9 @@ init = (options) ->
   config.options.relationships.bidirectional ?= false
   config.options.relationships.storeInDocument ?= false # TODO: implement
   config.options.cacheAttachedNodes ?= true
+
+  # Allow overriding if mongrapg already was inizialized
+  config.options.overrideProtypeFunctions = true if alreadyInitialized
   
   # used for extendDocument + extendNode
   config.options.mongoose = options.mongoose
@@ -40,6 +44,8 @@ init = (options) ->
   # Load plugin and extend schemas with middleware
   # -> http://mongoosejs.com/docs/plugins.html
   config.mongoose.plugin(mongraphMongoosePlugin, config.options) if config.options.extendSchemaWithMongoosePlugin
+
+  alreadyInitialized = true
 
 
 module.exports = {init,config,processtools}

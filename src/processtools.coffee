@@ -32,7 +32,7 @@ sortJoins = (args) ->
 constructorNameOf = (f) ->
   f?.constructor?.toString().match(/function\s+(.+?)\(/)?[1]?.trim() || null
 
-_extractCollectionAndId = (s) ->
+extractCollectionAndId = (s) ->
   { collectionName: parts[0], _id: parts[1] } if (parts = s.split(":"))
 
 _buildQueryFromIdAndCondition = (_id_s, condition) ->
@@ -159,7 +159,7 @@ populateResultWithDocuments = (results, options, cb) ->
         for point in [ 'from', 'to']
           intermediateCallback = fromAndToJoin.add()
           do (point, intermediateCallback) ->
-            {collectionName,_id} = _extractCollectionAndId(result.data["_#{point}"])
+            {collectionName,_id} = extractCollectionAndId(result.data["_#{point}"])
             isReferenceDocument = options.referenceDocumentID is _id
             # do we have a distinct collection and this records is from another collection? skip it
             if options.collection and options.collection isnt collectionName and not isReferenceDocument 
@@ -220,4 +220,4 @@ populateResultWithDocuments = (results, options, cb) ->
   join.when ->
     {error,result} = sortJoins(arguments)
     final(error, null)
-module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j}
+module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}

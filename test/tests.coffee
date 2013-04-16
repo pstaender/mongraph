@@ -472,6 +472,20 @@ describe "Mongraph", ->
           expect(path).to.have.length 2
           done()
 
+    describe '#init() with specific options', ->
+
+      it 'expect to store relationships (redundant) in document', (done) ->
+        mongraph.init {
+          neo4j: graph
+          mongoose: mongoose
+          relationships:
+            storeInDocument: true
+        }
+        alice.save (err, record) ->
+          expect(err).to.be null
+          expect(record._relationships).to.be.an Object
+          expect(record._relationships.visits).to.have.length 2
+          done()
 
   describe 'Neo4j::Node', ->
 
