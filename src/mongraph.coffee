@@ -22,8 +22,8 @@ init = (options) ->
   config.options.relationships.storeTimestamp = true # is always true
   config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
   config.options.relationships.bidirectional ?= false
+  config.options.relationships.storeInDocument ?= false # TODO: implement
   config.options.cacheAttachedNodes ?= true
-  config.options.storeRelationshipsInDocument ?= false
   
   # used for extendDocument + extendNode
   config.options.mongoose = options.mongoose
@@ -39,7 +39,7 @@ init = (options) ->
 
   # Load plugin and extend schemas with middleware
   # -> http://mongoosejs.com/docs/plugins.html
-  config.mongoose.plugin(mongraphMongoosePlugin) if config.options.extendSchemaWithMongoosePlugin
+  config.mongoose.plugin(mongraphMongoosePlugin, config.options) if config.options.extendSchemaWithMongoosePlugin
 
 
 module.exports = {init,config,processtools}
