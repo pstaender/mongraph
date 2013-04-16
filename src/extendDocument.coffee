@@ -61,6 +61,13 @@ module.exports = (globalOptions) ->
   Document::findCorrespondingNode = (options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
+
+    # you can force a reloading of a node
+    # so you can ensure to get the latest existing node directly from db
+    options.forceReload ?= false
+
+    return cb(null, doc._cached_node, options) if globalOptions.cacheAttachedNodes and doc._cached_node and options.forceReload isnt true
+
     collectionName = doc.constructor.collection.name
     id = processtools.getObjectIDAsString(doc)
 
@@ -89,14 +96,15 @@ module.exports = (globalOptions) ->
         node.save()
       # store node_id on document
       doc._node_id = node.id
-      cb(null, node)
+      doc._cached_node = node if globalOptions.cacheAttachedNodes
+      cb(null, node, options)
 
     if doc.isNew is true and options.forceCreation isnt true
-      cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null)
+      cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null, options)
     else if doc._node_id
       graphdb.getNodeById doc._node_id, (errFound, node) ->
         if errFound
-          cb(errFound, node)
+          cb(errFound, node, options)
         else
           _processNode(node,doc,cb)
     else if options.doCreateIfNotExists or options.forceCreation is true
@@ -104,7 +112,7 @@ module.exports = (globalOptions) ->
       node = graphdb.createNode( _id: id, collection: collectionName )
       node.save (errSave, node) ->
         if errSave
-          cb(errSave, node)
+          cb(errSave, node, options)
         else
           # do index, but we don't use it anymore
           # TODO: remove maybe? maybe it can be used to query this way:
@@ -112,7 +120,7 @@ module.exports = (globalOptions) ->
           node.index(collectionName, '_id', id)
           _processNode(node, doc, cb) 
     else
-      cb(null,null)
+      cb(null, null, options)
 
   #### Finds or create equivalent Node to this Document
   Document::findOrCreateCorrespondingNode = (options, cb) ->
@@ -316,4 +324,9 @@ module.exports = (globalOptions) ->
         RETURN p;
       """
       from.queryGraph(query, options, cb)
+
+  #### Cache node
+  if globalOptions.cacheAttachedNodes
+    Document::_cached_node = null
+  
 

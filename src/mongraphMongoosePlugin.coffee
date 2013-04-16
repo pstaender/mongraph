@@ -1,13 +1,17 @@
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
+  options.relations ?= {}
+  options.relations.removeAllOutgoing  ?= true
+  options.relations.removeAllIncoming  ?= true
+
   schema.add {
     # node id of corresponding node
     _node_id: Number,
   }
 
-  options.relations ?= {}
-  options.relations.removeAllOutgoing ?= true
-  options.relations.removeAllIncoming ?= true
+  if options.storeRelationshipsInDocument
+    schema.add relationships: {}
+  
 
   # Extend middleware for graph use
 

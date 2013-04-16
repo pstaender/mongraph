@@ -22,6 +22,9 @@ init = (options) ->
   config.options.relationships.storeTimestamp = true # is always true
   config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
   config.options.relationships.bidirectional ?= false
+  config.options.cacheAttachedNodes ?= true
+  config.options.storeRelationshipsInDocument ?= false
+  
   # used for extendDocument + extendNode
   config.options.mongoose = options.mongoose
   config.options.graphdb  = options.neo4j
@@ -33,7 +36,6 @@ init = (options) ->
   require('./extendDocument')(config.options)
   # extend Node(s) with DocumentDB interoperability
   require('./extendNode')(config.options)
-  # TODO: implement extendRelationship, extendPath
 
   # Load plugin and extend schemas with middleware
   # -> http://mongoosejs.com/docs/plugins.html

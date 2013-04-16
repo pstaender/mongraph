@@ -292,15 +292,10 @@ describe "Mongraph", ->
 
           done()
 
-          # TODO: fix loading relationships[0].start.document
+      it 'expect to get documents of start + end point of a relationship'#, (done) ->
+        # alice.createRelationshipBetween bob, 'follows'#, (err, relationships) ->
 
-          # names = {}
-          # for relation in relationships
-          #   names[relation.start.document.name] = true
-          # expect(names).to.only.have.keys( 'alice', 'bob' )
-          # TODO: we should also test, that we get the correct relationships via incoming + outgoing
-          # maybe a cypher query could be a good proof here
-          # done()
+        #   done()
 
     describe '#removeRelationshipsTo', ->
 
@@ -396,7 +391,7 @@ describe "Mongraph", ->
         alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships, options) ->
           data = {}
           for relationship in relationships
-            data[relationship.to.name] = true if relationship.to?.name
+            data[relationship.to.name] = true
           expect(data).to.only.have.keys( 'Bar', 'Pub' )
           expect(relationships).to.have.length 2
           expect(err).to.be null
