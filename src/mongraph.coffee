@@ -15,16 +15,16 @@ init = (options) ->
   config.mongoose = options.mongoose
   config.graphdb  = options.neo4j
   config.options.overrideProtypeFunctions ?= false
-  config.options.storeDocumentInGraphDatabase ?= false # TODO: implement
-  config.options.cacheNodes ?= true # TODO: implement
+  config.options.storeDocumentInGraphDatabase = false # TODO: implement
+  config.options.cacheNodes ?= true
   config.options.loadMongoDBRecords ?= true
   config.options.extendSchemaWithMongoosePlugin ?= true
   config.options.relationships ?= {}
-  config.options.relationships.storeTimestamp = true # is always true
-  config.options.relationships.storeIDsInRelationship = true # is always true as long it's mandatory for mongraph 
+  config.options.relationships.storeTimestamp ?= true
+  config.options.relationships.storeIDsInRelationship = true # must be true as long it's needed for mongraph to work as expected 
   config.options.relationships.bidirectional ?= false
-  config.options.relationships.storeInDocument ?= false # TODO: implement
-  config.options.cacheAttachedNodes ?= true
+  config.options.relationships.storeInDocument ?= false # will produce redundant data (stored in relationships + document)
+  config.options.cacheAttachedNodes ?= true # recommend to decrease requests to neo4j
 
   # Allow overriding if mongrapg already was inizialized
   config.options.overrideProtypeFunctions = true if alreadyInitialized
