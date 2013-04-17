@@ -85,23 +85,30 @@ getCollectionByCollectionName = (collectionName, mongoose) ->
   modelName = getModelByCollectionName(collectionName, mongoose)
   mongoose.models[modelName] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
 
+# Iterates through the neo4j's resultset and attach documents from mongodb
+# =====
+#
+# Currently we having three different of expected Objects: Node, Relationship and Path
+# TODO: maybe split up to submethods for each object type
+# TODO: reduce mongodb queries by sorting ids to collection(s) and query them once per collection with $in : [ ids... ] ...
 
 populateResultWithDocuments = (results, options, cb) ->
-  # TODO: reduce mongodb queries by sorting ids to collection(s)
-  # and query them once per collection with $in : [ ids... ] ...
   {options, cb} = sortOptionsAndCallback(options,cb)
   
   options.count ?= false
   options.restructure ?= true # do some useful restructure
   options.referenceDocumentID ?= null # document which is our base document, import for where queries
   options.referenceDocumentID = String(options.referenceDocumentID) if options.referenceDocumentID
+  options.relationships ?= {}
+  options.relationships.storeInDocument ?= false
+  options.relationships.storeInDocument  = {} if options.relationships.storeInDocument
+  options.relationships.storeInDocument?.syncMode ?= 'async'
   options.collection ?= null # distinct collection
   options.where ?= null # query documents
-  options.debug = if options.debug then {} else null
+  options.debug = if options.debug is true or not options.debug? then {} else null
+  options.debug?.where ?= []
   options.stripEmptyItems ?= true
-  if options.debug
-    options.debug.where ?= []
-    # options.debug.cypher ?= []
+  
 
   unless results instanceof Object
     return cb(new Error('Object is needed for processing'), null, options)
@@ -109,7 +116,7 @@ populateResultWithDocuments = (results, options, cb) ->
     # put in array to iterate
     results = [ results ]
 
-  # called when all documents loaded
+  # Finally called when *all* documents are loaded and we can pass the result to cb
   final = (err) ->
     # [ null, {...}, null, ..., {...}, {...} ] ->  [ {...}, ..., {...}, {...} ]
     # return only path if we have a path here and the option is set to restructre
@@ -127,7 +134,10 @@ populateResultWithDocuments = (results, options, cb) ->
   # TODO: if distinct collection
 
   mongoose = getMongoose()  # get mongoose handler
-  graphdb  = getNeo4j()     # get neo4j handler 
+  graphdb  = getNeo4j()     # get neo4j handler
+
+  # Used **only** by RELATIONSHIP for updating relationships (options.relationships.storeInDocument)
+  updateRelationshipsOnDocuments = {}
 
   # TODO: extend Path and Relationship objects (nit possible with prototyping here) 
 
@@ -137,7 +147,7 @@ populateResultWithDocuments = (results, options, cb) ->
   for result, i in results
     do (result, i) ->
       
-      ## Node
+      # ### NODE
       if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id 
         callback = join.add()
         isReferenceDocument = options.referenceDocumentID is result.data._id
@@ -152,16 +162,21 @@ populateResultWithDocuments = (results, options, cb) ->
             results[i].document = foundDocument
             callback(err, results)
       
-      ## Relationship
+      # ### RELATIONSHIP
       else if constructorNameOf(result) is 'Relationship' and result.data?._from and result.data?._to
+        # TODO: trigger updateRelationships for both sides if query was about and option is set to
         callback = join.add()
         fromAndToJoin = Join.create()
         for point in [ 'from', 'to']
           intermediateCallback = fromAndToJoin.add()
           do (point, intermediateCallback) ->
             {collectionName,_id} = extractCollectionAndId(result.data["_#{point}"])
+            if _id and options.relationships.storeInDocument
+              # sort directly to o[collection][_id] to reduce queries
+              updateRelationshipsOnDocuments[collectionName] ?= {}
+              updateRelationshipsOnDocuments[collectionName][_id] = collectionName
             isReferenceDocument = options.referenceDocumentID is _id
-            # do we have a distinct collection and this records is from another collection? skip it
+            # do we have a distinct collection and this records is from another collection? skip if so
             if options.collection and options.collection isnt collectionName and not isReferenceDocument 
               # remove relationship from result
               results[i] = null
@@ -180,9 +195,9 @@ populateResultWithDocuments = (results, options, cb) ->
         fromAndToJoin.when ->
           callback(null, null)
 
-      ## Path
+      # ### PATH
       else if constructorNameOf(result) is 'Path' or constructorNameOf(result.p) is 'Path'
-        # in some cases path is in result.p or is directly p
+        # In some cases path is in result.p or is directly p (depends on chyper query?! not sure...)
         _p = result.p || result
         results[i].path = Array(_p._nodes.length)
         path = if options.restructure then Array(_p._nodes.length)
@@ -217,7 +232,17 @@ populateResultWithDocuments = (results, options, cb) ->
       else
         final(new Error("Could not detect given result type"),null)
   
+  # ### If all callbacks are fulfilled 
+
   join.when ->
     {error,result} = sortJoins(arguments)
+    if options.relationships.storeInDocument?.syncMode is 'async'
+      #console.log updateRelationshipsOnDocuments
+      for collectionName of updateRelationshipsOnDocuments
+        for _id of updateRelationshipsOnDocuments[collectionName]
+          collection = getCollectionByCollectionName(collectionName, mongoose)
+          collection.findById _id, (err, found) ->
+            # update if found
+            found?.updateRelationships(undefined, options)
     final(error, null)
 module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}

@@ -17,7 +17,7 @@ module.exports = (globalOptions) ->
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtypeFunctions isnt true
-    for functionName in [ 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
+    for functionName in [ 'updateRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
   Document = mongoose.Document
@@ -35,9 +35,13 @@ module.exports = (globalOptions) ->
       # Adding cypher query for better debugging
       # err.query = cypher if err
       options.debug ?= false
-      options.debug = {} if options.debug
-      options.debug.cypher = cypher if options.debug
+      options.debug = if options.debug is true or not options.debug? {} else null
+      options.debug?.cypher ?= []
+      options.debug?.cypher.push(cypher) if options.debug
       options.loadDocuments ?= true # load documents from mongodb
+      # options.relationships.storeInDocument is used to call updateRelationships('*') on each affected documented
+      options.relationships ?= {}
+      options.relationships.storeInDocument ?= globalOptions.relationships.storeInDocument
       # TODO: would it be helpful to have also the `native` result?
       # options.graphResult = map
       if options.loadDocuments and map?.length > 0
@@ -201,24 +205,24 @@ module.exports = (globalOptions) ->
   # * loadDocuments: (true|false)
   # * endNode: '' (can be a node object or a nodeID)
   Document::queryRelationships = (typeOfRelationship, options, cb) ->
-    # options can be a cypher query as string
-    options = { query: options } if typeof options is 'string'
+    # REMOVED: options can be a cypher query as string
+    # options = { query: options } if typeof options is 'string'
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     # build query from options
     typeOfRelationship ?= '*'
     typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
     options.direction ?= 'both'
-    options.action ?= "RETURN"
-    options.processPart ?= "relation"   
+    options.action ?= 'RETURN'
+    options.processPart ?= 'relation'   
     options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
-    options.endNode ?= ""
+    options.endNode ?= ''
     options.endNode = endNode.id if typeof endNode is 'object'    
     doc = @
     id = processtools.getObjectIDAsString(doc)
     @getNode (nodeErr, fromNode) ->
       # if no node is found
-      return cb(nodeErr, null) if nodeErr
+      return cb(nodeErr, null, options) if nodeErr
       cypher = """
                 START a = node(%(id)s)%(endNode)s
                 MATCH (a)%(incoming)s[relation%(relation)s]%(outgoing)s(b)
@@ -237,7 +241,7 @@ module.exports = (globalOptions) ->
         # take query from options and discard build query
         cypher = query
       if options.dontExecute
-        cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null)
+        cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null, options)
       else
         _queryGraphDB(cypher, options, cb)
 
@@ -324,6 +328,65 @@ module.exports = (globalOptions) ->
         RETURN p;
       """
       from.queryGraph(query, options, cb)
+
+  Document::updateRelationships = (typeOfRelationship = '*', options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    doc = @
+    # Schema
+    # 
+    # typeOfRelationship: [
+    #   from:
+    #     collection: String
+    #     _id: ObjectId
+    #     data: {}
+    #   to:
+    #     collection: String
+    #     _id: ObjectId
+    #     data: {}
+    # ]
+
+    _finally = (err, result, options) ->
+      cb(err, result, options) if typeof cb is 'function'
+
+    doc.getNode options, (err, node, options) ->
+      return _finally(err, node, options) if err
+      doc.allRelationships typeOfRelationship, options, (err, relationships, options) ->
+        return _finally(err, relationships, options) if err
+        sortedRelationships = {}
+        if relationships?.length > 0
+          # add relationships to object, sorted by type (see above for schema)          
+          for relation in relationships
+            if relation._data?.type
+              data = {}
+              for part in [ 'from', 'to' ]
+                {collectionName,_id} = processtools.extractCollectionAndId(relation.data["_#{part}"])
+                data[part] =
+                  collection: collectionName
+                  _id: processtools.ObjectId(_id)
+              sortedRelationships[relation._data.type] ?= []
+              sortedRelationships[relation._data.type].push(data)
+        doc._relationships = sortedRelationships
+        if typeOfRelationship is '*'
+          conditions = { _relationships: sortedRelationships }
+          options?.debug?.where.push(conditions)
+          # update all, recommend but is slower
+          doc.update conditions, (err, result) -> _finally(err,result,options)
+        else
+          key = '_relationships.'+typeOfRelationship
+          update = {}
+          update[key] = sortedRelationships[typeOfRelationship]
+          conditions = update
+          options?.debug?.where.push(conditions)
+          if sortedRelationships[typeOfRelationship]?
+            doc.update conditions, (err, result) -> _finally(err,result,options)
+          else
+            # remove/unset attribute
+            update[key] = 1 # used to get mongodb query like -> { $unset: { key: 1 } }
+            conditions = { $unset: update }
+            options?.debug?.where.push(conditions)
+            doc.update conditions, (err, result) -> _finally(err,result,options)
+
+       
 
   #### Cache node
   if globalOptions.cacheAttachedNodes

@@ -27,35 +27,8 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
     next()
     # if option store relationships in document is activated
     if options.relationships.storeInDocument
-      # Schema
-      # 
-      # typeOfRelationship: [
-      #   from:
-      #     collection: String
-      #     _id: ObjectId
-      #     data: {}
-      #   to:
-      #     collection: String
-      #     _id: ObjectId
-      #     data: {}
-      # ]
-      doc.getNode { forceCreation: true }, (err, node) ->
-        doc.allRelationships '*', (err, relationships) ->
-          if relationships?.length > 0
-            # add relationships to object, sorted by type (see above for schema)
-            sortedRelationships = {}
-            for relation in relationships
-              if relation._data?.type
-                data = {}
-                for part in [ 'from', 'to' ]
-                  {collectionName,_id} = processtools.extractCollectionAndId(relation.data["_#{part}"])
-                  data[part] =
-                    collection: collectionName
-                    _id: processtools.ObjectId(_id)
-                sortedRelationships[relation._data.type] ?= []
-                sortedRelationships[relation._data.type].push(data)
-          doc._relationships = sortedRelationships
-          done(err,null)
+      # update **all** relationships
+      doc.updateRelationships '*', { forceCreation: true }, done
     else
       doc.getNode { forceCreation: true }, done
       

@@ -423,7 +423,7 @@ describe "Mongraph", ->
 
     describe '#outgoingRelationships()', ->
 
-      it 'expect to get only outgoing relationshipss', (done) ->
+      it 'expect to get only outgoing relationships', (done) ->
         alice.outgoingRelationships 'visits', (err, result) ->
           expect(err).to.be(null)
           expect(result).to.have.length 2
@@ -485,7 +485,23 @@ describe "Mongraph", ->
           expect(err).to.be null
           expect(record._relationships).to.be.an Object
           expect(record._relationships.visits).to.have.length 2
-          done()
+          #  remove all 'visits' relationships and check the effect on the record
+          alice.removeRelationships 'visits', { debug: true }, (err, result, options) ->
+            console.log err, options
+            alice.allRelationships 'visits', { debug: true }, (err, result, options) ->
+              
+              # alice.updateRelationships '*', (err) ->
+              #   expect(err).to.be null
+              setTimeout ->
+                Person.findById alice._id, (err, person) ->
+                  console.log person._relationships
+                  done()
+              #, 2500
+            # alice.save (err, record) ->
+            #   expect(err).to.be null
+            #   expect(record._relationships).to.be.an Object
+            #   expect(record._relationships.visits).to.be undefined
+            #   done()
 
   describe 'Neo4j::Node', ->
 
