@@ -57,10 +57,13 @@ Each relationship will store informations about the start- and end-point-documen
 To access the corresponding node:
 
 ```js
-  // We have created/saved the document before
-  console.log(document._node_id); // prints the id of the corresponding node
-  document.getNode(function(err, node){
-    console.log(node); // prints the node object
+  // We can work with relationship after the document is stored in MongoDB
+  document = new Document({ title: 'Document Title'});
+  document.save(function(err, savedDocument){
+    savedDocument.log(savedDocument._node_id); // prints the id of the corresponding node
+    savedDocument.getNode(function(err, correspondingNode){
+      console.log(correspondingNode); // prints the node object
+    });
   });
 ```
 
@@ -68,9 +71,9 @@ To access the corresponding document:
 
 ```js
   console.log(node.data._id); // prints the id of the corresponding document
-  console.log(node.data.collection); // prints the collection name of the corresponding document
-  node.getDocument(function(err, document){
-    console.log(document); // prints the document object
+  console.log(node.data.collection); // prints the collection name of the corresponding 
+  node.getDocument(function(err, correspondingDocument){
+    console.log(correspondingDocument); // prints the document object
   });
 ```
 
@@ -80,20 +83,26 @@ You can create relationships between documents like you can do in Neo4j with nod
   // create an outgoing relationship to another document
   // please remember that we have to work here always with callbacks...
   // that's why we are having the streamline placeholder here `_` (better to read)
-  document.createRelationshipTo(otherDocument, _);
+  document.createRelationshipTo(
+    otherDocument, 'similar', { category: 'article' }, _
+  );
   // create an incoming relationship from another document
-  document.createRelationshipFrom(otherDocument, _);
+  document.createRelationshipFrom(
+    otherDocument, 'similar', { category: 'article' }, _
+  );
   // create a relationship between documents (bidirectional)
-  document.createRelationshipBetween(otherDocument, _);
+  document.createRelationshipBetween(
+    otherDocument, 'similar', { category: 'article'},  _
+  );
 ```
 
 You can get and remove relationships from documents like you can do in Neo4j:
 
 ```js
   // get all documents which are pointing to this document with 'view'
-  document.incomingRelationships('view', _);
+  document.incomingRelationships('similar', _);
   // get all documents that are connected with 'view' (bidirectional)
-  document.allRelationships('view', _);
+  document.allRelationships('similar', _);
 ```
 
 You can query the results with the MongoDB query:
@@ -101,7 +110,26 @@ You can query the results with the MongoDB query:
 ```js
   // get all documents which are pointing to this document with 'view'
   // and the attribute title starts with an uppercase character
-  document.incomingRelationships('view', { where: { title: /^[A-Z]/ } });
+  document.incomingRelationships(
+    'similar',
+    { where:
+      // will query all found documents with connected with the relationship 'similar'
+      {
+        title: /^[A-Z]/
+      }
+    }, _
+  );
+```
+
+To get more informations about queries (and finally used options) inspect the passed through options argument (`debug: true` causes that made queries are attached to `options` as well):
+
+```js
+  document.incomingRelationships(
+    'similar', { debug: true }, function(err, found, options) {
+      // prints out finally used options and - if set to `true` - additional debug informations
+      console.log(options);
+    }
+  );
 ```
 
 ### Works together with
