@@ -17,7 +17,7 @@ describe "Mongraph", ->
       cb(err, Number(count?[0]?['count(n)']) || null)
 
   # schemas and data objects
-  Person = Location = alice = bob = charles = dave = elon = zoe = bar = pub = null
+  Person = Location = alice = bob = charles = dave = elton = frank = zoe = bar = pub = null
   # handler for connections
   mongo  = graph = null
   # regex for validating objectid
@@ -91,7 +91,7 @@ describe "Mongraph", ->
     return done() unless cleanupDBs
     # Remove all persons and locations with documents + nodes
     join = Join.create()
-    for record in [ alice, bob, charles, dave, elon, zoe, bar, pub ]
+    for record in [ alice, bob, charles, dave, elton, zoe, bar, pub ]
       do (record) ->
         callback = join.add()
         if typeof record?.remove is 'function'
@@ -240,23 +240,23 @@ describe "Mongraph", ->
     describe '#getNode()', ->
 
       it 'expect not to get a corresponding node for an unstored document in graphdb', (done) ->
-        elon = Person(name: "elon")
-        expect(elon._node_id).not.to.be.above 0
-        elon.getNode (err, found) ->
+        elton = Person(name: "elton")
+        expect(elton._node_id).not.to.be.above 0
+        elton.getNode (err, found) ->
           expect(err).not.to.be null
           expect(found).to.be null
-          done()
+          elton.remove -> done()
 
       it 'expect to find always the same corresponding node to a stored document', (done) ->
-        elon = Person(name: "elon")
-        elon.save (err, elon) ->
+        elton = Person(name: "elton")
+        elton.save (err, elton) ->
           expect(err).to.be null
-          nodeID = elon._node_id
+          nodeID = elton._node_id
           expect(nodeID).to.be.above 0
-          elon.getNode (err, node) ->
+          elton.getNode (err, node) ->
             expect(err).to.be null
             expect(node.id).to.be.equal node.id
-            done()
+            elton.remove -> done()
 
     describe '#createRelationshipTo()', ->
 
@@ -430,19 +430,20 @@ describe "Mongraph", ->
     describe '#removeNode()', ->
 
       it 'expect to remove a node including all incoming and outgoing relationships', (done) ->
-        dave = new Person(name: "dave")
-        dave.save (err, dave) -> dave.getNode (err, node) ->
+        frank = new Person name: 'frank'
+        frank.save (err, frank) -> frank.getNode (err, node) ->
           nodeId = node.id
           expect(nodeId).to.be.above 0
-          dave.createRelationshipTo zoe, 'likes', -> zoe.createRelationshipTo dave, 'likes', -> dave.allRelationships 'likes', (err, likes) ->
+          frank.createRelationshipTo zoe, 'likes', -> zoe.createRelationshipTo frank, 'likes', -> frank.allRelationships 'likes', (err, likes) ->
             expect(likes).to.have.length 2
-            dave.removeNode (err, result) ->
+            frank.removeNode (err, result) ->
               expect(err).to.be null
               graph.getNodeById nodeId, (err, found) ->
                 expect(found).to.be undefined
-                dave.allRelationships 'likes', (err, likes) ->
+                frank.allRelationships 'likes', (err, likes) ->
                   expect(likes).to.be null
-                  done()
+                  frank.remove ->
+                    done()
 
     describe '#shortestPath()', ->
 
@@ -487,6 +488,34 @@ describe "Mongraph", ->
                 expect(aliceReloaded._relationships).to.only.have.keys 'knows'
                 expect(aliceReloaded._relationships.knows).to.have.length 2
                 done()
+
+    describe 'various in-the-wild-tests', (done) ->
+
+      it 'expect to count relationships correctly (incoming, outgoing and both)', (done) ->
+        dave  = new Person name: 'dave'
+        elton = new Person name: 'elton'
+        elton.save -> dave.save -> elton.allRelationships (err, eltonsRelationships) ->
+          expect(err).to.be null
+          expect(eltonsRelationships).to.have.length 0
+          elton.createRelationshipTo dave, 'rocks', { instrument: 'piano' }, ->
+            elton.outgoingRelationships 'rocks', (err, playsWith) ->
+              expect(err).to.be null
+              expect(playsWith).to.have.length 1
+              expect(playsWith[0].data.instrument).to.be 'piano'
+              elton.incomingRelationships 'rocks', (err, playsWith) ->
+                expect(playsWith).to.have.length 0
+                dave.createRelationshipTo elton, 'rocks', { instrument: 'guitar' }, ->
+                  elton.incomingRelationships 'rocks', (err, playsWith) ->
+                    expect(playsWith).to.have.length 1
+                    dave.createRelationshipTo elton, 'rocks', { song: 'Everlong' }, ->
+                      elton.incomingRelationships 'rocks', (err, plays) ->
+                        expect(plays).to.have.length 2
+                        expect(plays[0].data.instrument).to.be 'guitar'
+                        expect(plays[1].data.song).to.be 'Everlong'
+                        dave.allRelationships '*', (err, relations) ->
+                          expect(relations).to.have.length 3
+                          elton.remove -> dave.remove ->
+                            done()
 
   describe 'Neo4j::Node', ->
 

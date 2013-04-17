@@ -21,7 +21,6 @@ sortOptionsAndCallback = (options, cb) ->
 sortAttributesAndCallback = (attributes, cb) ->
   {options,cb} = sortOptionsAndCallback(attributes, cb)
   { attributes: options, cb: cb}
-    
 
 sortJoins = (args) ->
   args = Array.prototype.slice.call(args)
@@ -29,7 +28,7 @@ sortJoins = (args) ->
   for arg in args
     returns.errors.push(arg[0]) if arg[0]
     returns.errors.push(arg[1]) if arg[1]
-  returns.errors = if returns.errors.length > 0 then new Error(returns.errors.join(", ")) else null 
+  returns.errors = if returns.errors.length > 0 then Error(returns.errors.join(", ")) else null 
   returns.result = if returns.result.length > 0 then returns.result else null
   returns
 

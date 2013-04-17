@@ -11,6 +11,21 @@ _s = require('underscore.string')
 processtools = require('./processtools')
 Join = require('join')
 
+_sortTypeOfRelationshipAndOptionsAndCallback = (r, o, c) ->
+  returns = { typeOfRelationship: '*', options: {}, cb: null }
+  if typeof r is 'string'
+    returns.typeOfRelationship = r
+    {options,cb} = processtools.sortOptionsAndCallback(o,c)
+    returns.options = options
+    returns.cb = cb
+  else if typeof r is 'object'
+    {options,cb} = processtools.sortOptionsAndCallback(r,o)
+    returns.options = options
+    returns.cb = cb
+  else
+    returns.cb = r
+  returns
+
 module.exports = (globalOptions) ->
 
   mongoose = globalOptions.mongoose
@@ -247,7 +262,7 @@ module.exports = (globalOptions) ->
 
   #### Loads incoming and outgoing relationships
   Document::allRelationships = (typeOfRelationship, options, cb) ->
-    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    {typeOfRelationship, options, cb} = _sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship, options, cb)
     options.direction = 'both'
     options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
