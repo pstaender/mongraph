@@ -17,6 +17,7 @@ sortOptionsAndCallback = (options, cb) ->
     { options: {}, cb: options }
   else
     { options: options or {}, cb: cb }
+    
 
 sortJoins = (args) ->
   args = Array.prototype.slice.call(args)
@@ -100,9 +101,6 @@ populateResultWithDocuments = (results, options, cb) ->
   options.referenceDocumentID ?= null # document which is our base document, import for where queries
   options.referenceDocumentID = String(options.referenceDocumentID) if options.referenceDocumentID
   options.relationships ?= {}
-  options.relationships.storeInDocument ?= false
-  options.relationships.storeInDocument  = {} if options.relationships.storeInDocument
-  options.relationships.storeInDocument?.syncMode ?= 'async'
   options.collection ?= null # distinct collection
   options.where ?= null # query documents
   options.debug = if options.debug is true or not options.debug? then {} else null
@@ -136,8 +134,6 @@ populateResultWithDocuments = (results, options, cb) ->
   mongoose = getMongoose()  # get mongoose handler
   graphdb  = getNeo4j()     # get neo4j handler
 
-  # Used **only** by RELATIONSHIP for updating relationships (options.relationships.storeInDocument)
-  updateRelationshipsOnDocuments = {}
 
   # TODO: extend Path and Relationship objects (nit possible with prototyping here) 
 
@@ -171,10 +167,6 @@ populateResultWithDocuments = (results, options, cb) ->
           intermediateCallback = fromAndToJoin.add()
           do (point, intermediateCallback) ->
             {collectionName,_id} = extractCollectionAndId(result.data["_#{point}"])
-            if _id and options.relationships.storeInDocument
-              # sort directly to o[collection][_id] to reduce queries
-              updateRelationshipsOnDocuments[collectionName] ?= {}
-              updateRelationshipsOnDocuments[collectionName][_id] = collectionName
             isReferenceDocument = options.referenceDocumentID is _id
             # do we have a distinct collection and this records is from another collection? skip if so
             if options.collection and options.collection isnt collectionName and not isReferenceDocument 
@@ -236,13 +228,5 @@ populateResultWithDocuments = (results, options, cb) ->
 
   join.when ->
     {error,result} = sortJoins(arguments)
-    if options.relationships.storeInDocument?.syncMode is 'async'
-      #console.log updateRelationshipsOnDocuments
-      for collectionName of updateRelationshipsOnDocuments
-        for _id of updateRelationshipsOnDocuments[collectionName]
-          collection = getCollectionByCollectionName(collectionName, mongoose)
-          collection.findById _id, (err, found) ->
-            # update if found
-            found?.updateRelationships(undefined, options)
     final(error, null)
 module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}

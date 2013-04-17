@@ -475,33 +475,20 @@ describe "Mongraph", ->
     describe '#init() with specific options', ->
 
       it 'expect to store relationships (redundant) in document', (done) ->
-        mongraph.init {
-          neo4j: graph
-          mongoose: mongoose
-          relationships:
-            storeInDocument: true
-        }
-        alice.save (err, record) ->
+        alice.applyGraphRelationships (err, relationships) ->
           expect(err).to.be null
-          expect(record._relationships).to.be.an Object
-          expect(record._relationships.visits).to.have.length 2
+          expect(relationships).to.only.have.keys 'knows', 'visits'
+          expect(relationships.knows).to.have.length 2
           #  remove all 'visits' relationships and check the effect on the record
           alice.removeRelationships 'visits', { debug: true }, (err, result, options) ->
-            console.log err, options
-            alice.allRelationships 'visits', { debug: true }, (err, result, options) ->
-              
-              # alice.updateRelationships '*', (err) ->
-              #   expect(err).to.be null
-              setTimeout ->
-                Person.findById alice._id, (err, person) ->
-                  console.log person._relationships
-                  done()
-              #, 2500
-            # alice.save (err, record) ->
-            #   expect(err).to.be null
-            #   expect(record._relationships).to.be.an Object
-            #   expect(record._relationships.visits).to.be undefined
-            #   done()
+            alice.applyGraphRelationships (err, relationships) ->
+              expect(err).to.be null
+              expect(relationships).to.only.have.keys 'knows'
+              expect(relationships.knows).to.have.length 2
+              Person.findById alice._id, (err, aliceReloaded) ->
+                expect(aliceReloaded._relationships).to.only.have.keys 'knows'
+                expect(aliceReloaded._relationships.knows).to.have.length 2
+                done()
 
   describe 'Neo4j::Node', ->
 

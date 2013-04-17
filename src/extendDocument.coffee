@@ -17,7 +17,7 @@ module.exports = (globalOptions) ->
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtypeFunctions isnt true
-    for functionName in [ 'updateRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
+    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
   Document = mongoose.Document
@@ -39,9 +39,6 @@ module.exports = (globalOptions) ->
       options.debug?.cypher ?= []
       options.debug?.cypher.push(cypher) if options.debug
       options.loadDocuments ?= true # load documents from mongodb
-      # options.relationships.storeInDocument is used to call updateRelationships('*') on each affected documented
-      options.relationships ?= {}
-      options.relationships.storeInDocument ?= globalOptions.relationships.storeInDocument
       # TODO: would it be helpful to have also the `native` result?
       # options.graphResult = map
       if options.loadDocuments and map?.length > 0
@@ -239,7 +236,7 @@ module.exports = (globalOptions) ->
       options.startNode ?= fromNode.id # for logging
       if options.query
         # take query from options and discard build query
-        cypher = query
+        cypher = options.query
       if options.dontExecute
         cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null, options)
       else
@@ -329,8 +326,13 @@ module.exports = (globalOptions) ->
       """
       from.queryGraph(query, options, cb)
 
-  Document::updateRelationships = (typeOfRelationship = '*', options, cb) ->
+  Document::applyGraphRelationships = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    # relationships will be stored permanently on this document
+    # not for daily used recommend
+    options.doPersist ?= true
+    sortedRelationships = {}
+    typeOfRelationship = '*' # TODO: make optional
     doc = @
     # Schema
     # 
@@ -346,13 +348,13 @@ module.exports = (globalOptions) ->
     # ]
 
     _finally = (err, result, options) ->
-      cb(err, result, options) if typeof cb is 'function'
+      doc._relationships = sortedRelationships # attach to current document
+      cb(err, doc._relationships, options) if typeof cb is 'function'
 
     doc.getNode options, (err, node, options) ->
       return _finally(err, node, options) if err
       doc.allRelationships typeOfRelationship, options, (err, relationships, options) ->
         return _finally(err, relationships, options) if err
-        sortedRelationships = {}
         if relationships?.length > 0
           # add relationships to object, sorted by type (see above for schema)          
           for relation in relationships
@@ -368,9 +370,12 @@ module.exports = (globalOptions) ->
         doc._relationships = sortedRelationships
         if typeOfRelationship is '*'
           conditions = { _relationships: sortedRelationships }
-          options?.debug?.where.push(conditions)
-          # update all, recommend but is slower
-          doc.update conditions, (err, result) -> _finally(err,result,options)
+          # update all -> slower
+          if options.doPersist
+            options?.debug?.where.push(conditions)
+            doc.update conditions, (err, result) -> _finally(err,result,options)
+          else
+            _finally(err,result,options)
         else
           key = '_relationships.'+typeOfRelationship
           update = {}
@@ -383,10 +388,12 @@ module.exports = (globalOptions) ->
             # remove/unset attribute
             update[key] = 1 # used to get mongodb query like -> { $unset: { key: 1 } }
             conditions = { $unset: update }
-            options?.debug?.where.push(conditions)
-            doc.update conditions, (err, result) -> _finally(err,result,options)
-
-       
+            
+            if options.doPersist
+              options?.debug?.where.push(conditions)
+              doc.update conditions, (err, result) -> _finally(err,result,options)
+            else
+              _finally(err,result,options)
 
   #### Cache node
   if globalOptions.cacheAttachedNodes
