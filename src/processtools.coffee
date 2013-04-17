@@ -32,6 +32,21 @@ sortJoins = (args) ->
   returns.result = if returns.result.length > 0 then returns.result else null
   returns
 
+sortTypeOfRelationshipAndOptionsAndCallback = (r, o, c) ->
+  returns = { typeOfRelationship: '*', options: {}, cb: null }
+  if typeof r is 'string'
+    returns.typeOfRelationship = r
+    {options,cb} = sortOptionsAndCallback(o,c)
+    returns.options = options
+    returns.cb = cb
+  else if typeof r is 'object'
+    {options,cb} = sortOptionsAndCallback(r,o)
+    returns.options = options
+    returns.cb = cb
+  else
+    returns.cb = r
+  returns
+
 # extract the constructor name as string
 constructorNameOf = (f) ->
   f?.constructor?.toString().match(/function\s+(.+?)\(/)?[1]?.trim() || null
@@ -105,7 +120,7 @@ populateResultWithDocuments = (results, options, cb) ->
   options.referenceDocumentID = String(options.referenceDocumentID) if options.referenceDocumentID
   options.relationships ?= {}
   options.collection ?= null # distinct collection
-  options.where ?= null # query documents
+  options.where?.document ?= null # query documents
   options.debug?.where ?= []
   options.stripEmptyItems ?= true
   
@@ -153,7 +168,7 @@ populateResultWithDocuments = (results, options, cb) ->
         if options.collection and options.collection isnt result.data.collection
           callback(err, results)
         else
-          conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where)
+          conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where?.document)
           options.debug?.where.push(conditions)
           collection = getCollectionByCollectionName(result.data.collection, mongoose)
           collection.findOne conditions, (err, foundDocument) ->
@@ -176,7 +191,7 @@ populateResultWithDocuments = (results, options, cb) ->
               results[i] = null
               intermediateCallback(null,null) #  results will be taken directly from results[i]
             else
-              conditions = _buildQueryFromIdAndCondition(_id, unless isReferenceDocument then options.where)
+              conditions = _buildQueryFromIdAndCondition(_id, unless isReferenceDocument then options.where?.document)
               options.debug?.where?.push(conditions)
               collection = getCollectionByCollectionName(collectionName, mongoose)
               collection.findOne conditions, (err, foundDocument) ->
@@ -207,7 +222,7 @@ populateResultWithDocuments = (results, options, cb) ->
                   if options.collection and options.collection isnt collectionName and not isReferenceDocument 
                     callback(null, path || results)
                   else
-                    conditions = _buildQueryFromIdAndCondition(_id, options.where)
+                    conditions = _buildQueryFromIdAndCondition(_id, options.where?.document)
                     options.debug?.where?.push(conditions)
                     collection = getCollectionByCollectionName(collectionName, mongoose)
                     collection.findOne conditions, (err, foundDocument) ->
@@ -231,4 +246,4 @@ populateResultWithDocuments = (results, options, cb) ->
   join.when ->
     {error,result} = sortJoins(arguments)
     final(error, null)
-module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, sortAttributesAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}
+module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, sortAttributesAndCallback, sortTypeOfRelationshipAndOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}

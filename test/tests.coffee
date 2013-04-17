@@ -7,7 +7,9 @@ expect     = require('expect.js')
 mongoose   = require('mongoose')
 neo4j      = require('neo4j')
 mongraph   = require('../src/mongraph')
-cleanupDBs = true # remove all test-created documents, nodes + relationship
+# remove all test-created documents, nodes + relationship on every test run
+# strongly recommend, for some tests mandatory... TODO: make tests independent from that option 
+cleanupDBs = true 
 nodesCount = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
 Join       = require('join')
 
@@ -114,6 +116,22 @@ describe "Mongraph", ->
         expect(mongraph.processtools.getObjectIDAsString(alice._id)).to.match(regexID)
         expect(mongraph.processtools.getObjectIDAsString(String(alice._id))).to.match(regexID)
 
+    describe '#sortTypeOfRelationshipAndOptionsAndCallback()', ->
+
+      it 'expect to sort arguments', ->
+        fn = mongraph.processtools.sortTypeOfRelationshipAndOptionsAndCallback
+        cb = ->
+        result = fn()
+        expect(result).be.eql { typeOfRelationship: '*', options: {}, cb: undefined }
+        result = fn(cb)
+        expect(result).be.eql { typeOfRelationship: '*', options: {}, cb: cb }
+        result = fn('knows', cb)
+        expect(result).be.eql { typeOfRelationship: 'knows', options: {}, cb: cb }
+        result = fn({debug: true}, cb)
+        expect(result).be.eql { typeOfRelationship: '*', options: { debug: true }, cb: cb }
+        result = fn('knows', {debug: true}, cb)
+        expect(result).be.eql { typeOfRelationship: 'knows', options: { debug: true }, cb: cb }
+
     describe '#populateResultWithDocuments()', ->
 
       it 'expect to get an error and null with options as result if the data is not usable', (done) ->
@@ -204,7 +222,8 @@ describe "Mongraph", ->
         _createExamplePath (err, result, exampleNodes) ->
           options =
             debug: true
-            where: { name: /^[A-Z]/ }
+            where:
+              document: { name: /^[A-Z]/ }
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 1
             expect(populatedPath[0].name).match /^[A-Z]/
@@ -245,7 +264,8 @@ describe "Mongraph", ->
         elton.getNode (err, found) ->
           expect(err).not.to.be null
           expect(found).to.be null
-          elton.remove -> done()
+          elton.remove() if cleanupDBs
+          done()
 
       it 'expect to find always the same corresponding node to a stored document', (done) ->
         elton = Person(name: "elton")
@@ -256,7 +276,8 @@ describe "Mongraph", ->
           elton.getNode (err, node) ->
             expect(err).to.be null
             expect(node.id).to.be.equal node.id
-            elton.remove -> done()
+            elton.remove() if cleanupDBs
+            done()
 
     describe '#createRelationshipTo()', ->
 
@@ -396,7 +417,7 @@ describe "Mongraph", ->
           done()
 
       it 'expect to get incoming relationships+documents with a condition', (done) ->
-        alice.outgoingRelationships '*', { where: { name: /^[A-Z]/ } }, (err, relationships) ->
+        alice.outgoingRelationships '*', { where: { document: { name: /^[A-Z]/ } } }, (err, relationships) ->
           expect(relationships).to.have.length 2
           data = {}
           for relationship in relationships
@@ -442,8 +463,8 @@ describe "Mongraph", ->
                 expect(found).to.be undefined
                 frank.allRelationships 'likes', (err, likes) ->
                   expect(likes).to.be null
-                  frank.remove ->
-                    done()
+                  frank.remove() if cleanupDBs
+                  done()
 
     describe '#shortestPath()', ->
 
@@ -463,7 +484,7 @@ describe "Mongraph", ->
           done()
 
       it 'expect to get a mongoose document with conditions', (done) ->
-        alice.shortestPathTo zoe, 'knows', { where: { name: /o/ } }, (err, path) ->
+        alice.shortestPathTo zoe, 'knows', { where: { document: { name: /o/ } } }, (err, path) ->
           bob = path[0]
           zoe = path[1]
           expect(bob.name).to.be.equal 'bob'
@@ -513,9 +534,13 @@ describe "Mongraph", ->
                         expect(plays[0].data.instrument).to.be 'guitar'
                         expect(plays[1].data.song).to.be 'Everlong'
                         dave.allRelationships '*', (err, relations) ->
-                          expect(relations).to.have.length 3
-                          elton.remove -> dave.remove ->
-                            done()
+                          dave.allRelationships '*', { where: { relationship: "relationship.instrument! = 'guitar'" }, debug: true }, (err, relations, options) ->
+                            expect(relations).to.have.length 1
+                            expect(relations[0].data.instrument).to.be.equal 'guitar'
+                            if cleanupDBs
+                              elton.remove -> dave.remove -> done()
+                            else
+                              done()
 
   describe 'Neo4j::Node', ->
 

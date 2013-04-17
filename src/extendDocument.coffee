@@ -11,21 +11,6 @@ _s = require('underscore.string')
 processtools = require('./processtools')
 Join = require('join')
 
-_sortTypeOfRelationshipAndOptionsAndCallback = (r, o, c) ->
-  returns = { typeOfRelationship: '*', options: {}, cb: null }
-  if typeof r is 'string'
-    returns.typeOfRelationship = r
-    {options,cb} = processtools.sortOptionsAndCallback(o,c)
-    returns.options = options
-    returns.cb = cb
-  else if typeof r is 'object'
-    {options,cb} = processtools.sortOptionsAndCallback(r,o)
-    returns.options = options
-    returns.cb = cb
-  else
-    returns.cb = r
-  returns
-
 module.exports = (globalOptions) ->
 
   mongoose = globalOptions.mongoose
@@ -49,7 +34,6 @@ module.exports = (globalOptions) ->
     # TODO: type check
     graphdb.query cypher, null, (errGraph, map) ->
       # Adding cypher query for better debugging
-      # err.query = cypher if err
       options.debug = {} if options.debug is true
       options.debug?.cypher ?= []
       options.debug?.cypher?.push(cypher)
@@ -219,13 +203,13 @@ module.exports = (globalOptions) ->
   Document::queryRelationships = (typeOfRelationship, options, cb) ->
     # REMOVED: options can be a cypher query as string
     # options = { query: options } if typeof options is 'string'
-    {options, cb} = processtools.sortOptionsAndCallback(options,cb)
+    {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
     # build query from options
     typeOfRelationship ?= '*'
     typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
     options.direction ?= 'both'
     options.action ?= 'RETURN'
-    options.processPart ?= 'relation'   
+    options.processPart ?= 'relationship'   
     options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
     options.endNode ?= ''
@@ -236,33 +220,42 @@ module.exports = (globalOptions) ->
     @getNode (nodeErr, fromNode) ->
       # if no node is found
       return cb(nodeErr, null, options) if nodeErr
+
+      
+
       cypher = """
                 START a = node(%(id)s)%(endNode)s
-                MATCH (a)%(incoming)s[relation%(relation)s]%(outgoing)s(b)
+                MATCH (a)%(incoming)s[relationship%(relation)s]%(outgoing)s(b)
+                %(whereRelationship)s
                 %(action)s %(processPart)s;
                """
+      
+
+
       cypher = _s.sprintf cypher,
-        id:             fromNode.id
-        incoming:       if options.direction is 'incoming' then '<-' else '-'
-        outgoing:       if options.direction is 'outgoing' then '->' else '-'
-        relation:       typeOfRelationship
-        action:         options.action.toUpperCase()
-        processPart:    options.processPart
-        endNode:        if options.endNode then ", b = node(#{options.endNode})" else ''
-      options.startNode ?= fromNode.id # for logging
-      if options.query
-        # take query from options and discard build query
-        cypher = options.query
+        id:                 fromNode.id
+        incoming:           if options.direction is 'incoming' then '<-' else '-'
+        outgoing:           if options.direction is 'outgoing' then '->' else '-'
+        relation:           typeOfRelationship
+        action:             options.action.toUpperCase()
+        processPart:        options.processPart
+        whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
+        endNode:            if options.endNode then ", b = node(#{options.endNode})" else ''
+      options.startNode     ?= fromNode.id # for logging
+      
+
+      # take query from options and discard build query
+      cypher = options.cypher if options.cypher
       options.debug?.cypher ?= []
       options.debug?.cypher?.push(cypher)
       if options.dontExecute
-        cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null, options)
+        cb(Error("`options.dontExecute` is set to true..."), null, options)
       else
         _queryGraphDB(cypher, options, cb)
 
   #### Loads incoming and outgoing relationships
   Document::allRelationships = (typeOfRelationship, options, cb) ->
-    {typeOfRelationship, options, cb} = _sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship, options, cb)
+    {typeOfRelationship, options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship, options, cb)
     options.direction = 'both'
     options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)

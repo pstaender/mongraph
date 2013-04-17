@@ -105,17 +105,21 @@ You can get and remove relationships from documents like you can do in Neo4j:
   document.allRelationships('similar', _);
 ```
 
-You can query the results with the MongoDB query:
+You can query the documents (mongodb) **and** the relationships (neo4j):
 
 ```js
-  // get all documents which are pointing to this document with 'view'
-  // and the attribute title starts with an uppercase character
+  // get all similar documents where title starts with an uppercase
+  // and that are connected with the attribute `scientific report`
   document.incomingRelationships(
     'similar',
-    { where:
-      // will query all found documents with connected with the relationship 'similar'
-      {
-        title: /^[A-Z]/
+    {
+      where: {
+        document: {
+          // we can query here with the familiar mongodb syntax
+          title: /^[A-Z]/
+        },
+        // this query is a simple string, because it's passed directly to the cypher query for now
+        relationship: "relationship.category! = 'scientific report'"
       }
     }, _
   );
