@@ -105,7 +105,7 @@ You can get and remove relationships from documents like you can do in Neo4j:
   document.allRelationships('similar', _);
 ```
 
-You can query the documents (mongodb) **and** the relationships (neo4j):
+You can filter the documents (mongodb) **and** the relationships (neo4j):
 
 ```js
   // get all similar documents where title starts with an uppercase
