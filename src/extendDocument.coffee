@@ -27,35 +27,69 @@ module.exports = (globalOptions) ->
 
   node = graphdb.createNode()
 
-  #### Private method to query neo4j directly
-  #### options -> see Document::queryRelationships
-  _queryGraphDB = (cypher, options, cb) ->
-    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    # TODO: type check
-    graphdb.query cypher, null, (errGraph, map) ->
-      # Adding cypher query for better debugging
-      options.debug = {} if options.debug is true
+  #### Allows extended querying to the graphdb and loads found Documents
+  #### (is used by many methods for loading incoming + outgoing relationships) 
+  # @param typeOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
+  # @param options = {}
+  # (first value is default)
+  # * direction (both|incoming|outgoing)
+  # * action: (RETURN|DELETE|...) (all other actions wich can be used in cypher)
+  # * processPart: (relationship|path|...) (depends on the result you expect from our query)
+  # * loadDocuments: (true|false)
+  # * endNode: '' (can be a node object or a nodeID)
+  Document::queryRelationships = (typeOfRelationship, options, cb) ->
+    # REMOVED: options can be a cypher query as string
+    # options = { query: options } if typeof options is 'string'
+    {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
+    # build query from options
+    typeOfRelationship ?= '*'
+    typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
+    options.direction ?= 'both'
+    options.action ?= 'RETURN'
+    options.processPart ?= 'r'   
+    options.referenceDocumentID ?= @_id 
+    # endNode can be string or node object
+    options.endNode ?= ''
+    options.endNode = endNode.id if typeof endNode is 'object'
+    options.debug = {} if options.debug is true
+    doc = @
+    id = processtools.getObjectIDAsString(doc)
+    @getNode (nodeErr, fromNode) ->
+      # if no node is found
+      return cb(nodeErr, null, options) if nodeErr
+
+      
+
+      cypher = """
+                START a = node(%(id)s)%(endNode)s
+                MATCH (a)%(incoming)s[r%(relation)s]%(outgoing)s(b)
+                %(whereRelationship)s
+                %(action)s %(processPart)s;
+               """
+      
+
+
+      cypher = _s.sprintf cypher,
+        id:                 fromNode.id
+        incoming:           if options.direction is 'incoming' then '<-' else '-'
+        outgoing:           if options.direction is 'outgoing' then '->' else '-'
+        relation:           typeOfRelationship
+        action:             options.action.toUpperCase()
+        processPart:        options.processPart
+        whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
+        endNode:            if options.endNode then ", b = node(#{options.endNode})" else ''
+      options.startNode     ?= fromNode.id # for logging
+      
+
+      # take query from options and discard build query
+      cypher = options.cypher if options.cypher
       options.debug?.cypher ?= []
       options.debug?.cypher?.push(cypher)
-      options.loadDocuments ?= true # load documents from mongodb
-      # TODO: would it be helpful to have also the `native` result?
-      # options.graphResult = map
-      if options.loadDocuments and map?.length > 0
-        # extract from result
-        data = for result in map
-          if options.processPart
-            result[options.processPart]
-          else
-            # return first first property otherwise
-            result[Object.keys(result)[0]]
-        if processtools.constructorNameOf(data[0]) is 'Relationship'
-          processtools.populateResultWithDocuments data, options, cb
-        # TODO: distinguish between 'Path', 'Node' etc ...
-        else
-          processtools.populateResultWithDocuments data, options, cb
+      if options.dontExecute
+        cb(Error("`options.dontExecute` is set to true..."), null, options)
       else
-        # prevent `undefined is not a function` if no cb is given
-        cb(errGraph, map || null, options) if typeof cb is 'function'
+        _queryGraphDB(cypher, options, cb)
+
 
   #### Loads the equivalent node to this Document 
   Document::findCorrespondingNode = (options, cb) ->
@@ -189,69 +223,6 @@ module.exports = (globalOptions) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
     _queryGraphDB(chypherQuery, options, cb)
-
-  #### Allows extended querying to the graphdb and loads found Documents
-  #### (is used by many methods for loading incoming + outgoing relationships) 
-  # @param typeOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
-  # @param options = {}
-  # (first value is default)
-  # * direction (both|incoming|outgoing)
-  # * action: (RETURN|DELETE|...) (all other actions wich can be used in cypher)
-  # * processPart: (relationship|path|...) (depends on the result you expect from our query)
-  # * loadDocuments: (true|false)
-  # * endNode: '' (can be a node object or a nodeID)
-  Document::queryRelationships = (typeOfRelationship, options, cb) ->
-    # REMOVED: options can be a cypher query as string
-    # options = { query: options } if typeof options is 'string'
-    {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
-    # build query from options
-    typeOfRelationship ?= '*'
-    typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
-    options.direction ?= 'both'
-    options.action ?= 'RETURN'
-    options.processPart ?= 'relationship'   
-    options.referenceDocumentID ?= @_id 
-    # endNode can be string or node object
-    options.endNode ?= ''
-    options.endNode = endNode.id if typeof endNode is 'object'
-    options.debug = {} if options.debug is true
-    doc = @
-    id = processtools.getObjectIDAsString(doc)
-    @getNode (nodeErr, fromNode) ->
-      # if no node is found
-      return cb(nodeErr, null, options) if nodeErr
-
-      
-
-      cypher = """
-                START a = node(%(id)s)%(endNode)s
-                MATCH (a)%(incoming)s[relationship%(relation)s]%(outgoing)s(b)
-                %(whereRelationship)s
-                %(action)s %(processPart)s;
-               """
-      
-
-
-      cypher = _s.sprintf cypher,
-        id:                 fromNode.id
-        incoming:           if options.direction is 'incoming' then '<-' else '-'
-        outgoing:           if options.direction is 'outgoing' then '->' else '-'
-        relation:           typeOfRelationship
-        action:             options.action.toUpperCase()
-        processPart:        options.processPart
-        whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
-        endNode:            if options.endNode then ", b = node(#{options.endNode})" else ''
-      options.startNode     ?= fromNode.id # for logging
-      
-
-      # take query from options and discard build query
-      cypher = options.cypher if options.cypher
-      options.debug?.cypher ?= []
-      options.debug?.cypher?.push(cypher)
-      if options.dontExecute
-        cb(Error("`options.dontExecute` is set to true..."), null, options)
-      else
-        _queryGraphDB(cypher, options, cb)
 
   #### Loads incoming and outgoing relationships
   Document::allRelationships = (typeOfRelationship, options, cb) ->
@@ -405,6 +376,37 @@ module.exports = (globalOptions) ->
               doc.update conditions, (err, result) -> _finally(err,result,options)
             else
               _finally(err,result,options)
+
+
+  #### Private method to query neo4j directly
+  #### options -> see Document::queryRelationships
+  _queryGraphDB = (cypher, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    # TODO: type check
+    graphdb.query cypher, null, (errGraph, map) ->
+      # Adding cypher query for better debugging
+      options.debug = {} if options.debug is true
+      options.debug?.cypher ?= []
+      options.debug?.cypher?.push(cypher)
+      options.loadDocuments ?= true # load documents from mongodb
+      # TODO: would it be helpful to have also the `native` result?
+      # options.graphResult = map
+      if options.loadDocuments and map?.length > 0
+        # extract from result
+        data = for result in map
+          if options.processPart
+            result[options.processPart]
+          else
+            # return first first property otherwise
+            result[Object.keys(result)[0]]
+        if processtools.constructorNameOf(data[0]) is 'Relationship'
+          processtools.populateResultWithDocuments data, options, cb
+        # TODO: distinguish between 'Path', 'Node' etc ...
+        else
+          processtools.populateResultWithDocuments data, options, cb
+      else
+        # prevent `undefined is not a function` if no cb is given
+        cb(errGraph, map || null, options) if typeof cb is 'function'
 
   #### Cache node
   if globalOptions.cacheAttachedNodes

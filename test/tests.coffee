@@ -510,7 +510,7 @@ describe "Mongraph", ->
                 expect(aliceReloaded._relationships.knows).to.have.length 2
                 done()
 
-    describe 'various in-the-wild-tests', (done) ->
+    describe 'mongraph daily-use-test', (done) ->
 
       it 'expect to count relationships correctly (incoming, outgoing and both)', (done) ->
         dave  = new Person name: 'dave'
@@ -534,7 +534,7 @@ describe "Mongraph", ->
                         expect(plays[0].data.instrument).to.be 'guitar'
                         expect(plays[1].data.song).to.be 'Everlong'
                         dave.allRelationships '*', (err, relations) ->
-                          dave.allRelationships '*', { where: { relationship: "relationship.instrument! = 'guitar'" }, debug: true }, (err, relations, options) ->
+                          dave.allRelationships '*', { where: { relationship: "r.instrument! = 'guitar'" }, debug: true }, (err, relations, options) ->
                             expect(relations).to.have.length 1
                             expect(relations[0].data.instrument).to.be.equal 'guitar'
                             if cleanupDBs
