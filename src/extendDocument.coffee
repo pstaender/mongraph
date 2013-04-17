@@ -9,6 +9,7 @@
 
 _s = require('underscore.string')
 processtools = require('./processtools')
+Join = require('join')
 
 module.exports = (globalOptions) ->
 
@@ -34,10 +35,9 @@ module.exports = (globalOptions) ->
     graphdb.query cypher, null, (errGraph, map) ->
       # Adding cypher query for better debugging
       # err.query = cypher if err
-      options.debug ?= false
-      options.debug = if options.debug is true or not options.debug? {} else null
+      options.debug = {} if options.debug is true
       options.debug?.cypher ?= []
-      options.debug?.cypher.push(cypher) if options.debug
+      options.debug?.cypher?.push(cypher)
       options.loadDocuments ?= true # load documents from mongodb
       # TODO: would it be helpful to have also the `native` result?
       # options.graphResult = map
@@ -143,6 +143,7 @@ module.exports = (globalOptions) ->
 
   #### Creates a relationship from this Document to a given document
   Document::createRelationshipTo = (doc, typeOfRelationship, attributes = {}, cb) ->
+    {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
     # assign cb + attribute arguments
     if typeof attributes is 'function'
       cb = attributes
@@ -163,27 +164,26 @@ module.exports = (globalOptions) ->
     @findOrCreateCorrespondingNode (fromErr, from) ->
       doc.findOrCreateCorrespondingNode (toErr, to) ->
         if from and to
-          from.createRelationshipTo to, typeOfRelationship, attributes, cb
+          from.createRelationshipTo to, typeOfRelationship, attributes, (err, result) ->
+            return cb(err, result) if err
+            processtools.populateResultWithDocuments result, {}, cb
         else
           cb(fromErr or toErr, null) if typeof cb is 'function'
   
   #### Creates an incoming relationship from a given Documents to this Document
   Document::createRelationshipFrom = (doc, typeOfRelationship, attributes = {}, cb) ->
+    {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
     # alternate directions: doc -> this
     doc.createRelationshipTo(@, typeOfRelationship, attributes, cb)
 
   #### Creates a bidrectional relationship between two Documents
   Document::createRelationshipBetween = (doc, typeOfRelationship, attributes = {}, cb) ->
     # both directions
-    self = @
-    found = []
-    self.createRelationshipTo doc, typeOfRelationship, attributes, (err, first) ->
-      return cb(err) if err
-      found.push(first)
-      doc.createRelationshipTo self, typeOfRelationship, attributes, (err, second) ->
-        return cb(err) if err
-        found.push(second)
-        cb(err, found) if typeof cb is 'function'
+    {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
+    from = @
+    to = doc
+    from.createRelationshipTo to, typeOfRelationship, (err1) -> to.createRelationshipTo from, typeOfRelationship, (err2) ->
+      cb(err1 || err2, null)
 
   #### Query the graphdb with cypher, current Document is not relevant for the query 
   Document::queryGraph = (chypherQuery, options, cb) ->
@@ -214,7 +214,8 @@ module.exports = (globalOptions) ->
     options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
     options.endNode ?= ''
-    options.endNode = endNode.id if typeof endNode is 'object'    
+    options.endNode = endNode.id if typeof endNode is 'object'
+    options.debug = {} if options.debug is true
     doc = @
     id = processtools.getObjectIDAsString(doc)
     @getNode (nodeErr, fromNode) ->
@@ -237,6 +238,8 @@ module.exports = (globalOptions) ->
       if options.query
         # take query from options and discard build query
         cypher = options.query
+      options.debug?.cypher ?= []
+      options.debug?.cypher?.push(cypher)
       if options.dontExecute
         cb({ message: "`dontExecute` options is set", query: cypher, options: options }, null, options)
       else

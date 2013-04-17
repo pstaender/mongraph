@@ -65,7 +65,8 @@ describe "Mongraph", ->
         Person.remove -> Location.remove -> createExampleDocuments -> 
           done()
     else
-      done()
+      createExampleDocuments -> 
+        done()
 
   beforeEach (done) ->
     # remove all relationships
@@ -261,41 +262,38 @@ describe "Mongraph", ->
 
       it 'expect to create an outgoing relationship from this document to another document', (done) ->
         alice.createRelationshipTo bob, 'knows', { since: 'years' }, (err, relationship) ->
-          expect(relationship.start.data._id).to.be.equal (String) alice._id
-          expect(relationship.end.data._id).to.be.equal (String) bob._id
-          expect(relationship._data.type).to.be.equal 'knows'
+          expect(relationship[0].start.data._id).to.be.equal (String) alice._id
+          expect(relationship[0].end.data._id).to.be.equal (String) bob._id
+          expect(relationship[0]._data.type).to.be.equal 'knows'
           alice.createRelationshipTo zoe, 'knows', { since: 'years' }, (err, relationship) ->
-            expect(relationship.start.data._id).to.be.equal (String) alice._id
-            expect(relationship.end.data._id).to.be.equal (String) zoe._id
-            expect(relationship._data.type).to.be.equal 'knows'
+            expect(relationship[0].start.data._id).to.be.equal (String) alice._id
+            expect(relationship[0].end.data._id).to.be.equal (String) zoe._id
+            expect(relationship[0]._data.type).to.be.equal 'knows'
             done()
 
     describe '#createRelationshipFrom()', ->
 
       it 'expect to create an incoming relationship from another document to this document' , (done) ->
         bob.createRelationshipFrom zoe, 'knows', { since: 'years' }, (err, relationship) ->
-          expect(relationship.start.data._id).to.be.equal (String) zoe._id
-          expect(relationship.end.data._id).to.be.equal (String) bob._id
+          expect(relationship[0].start.data._id).to.be.equal (String) zoe._id
+          expect(relationship[0].end.data._id).to.be.equal (String) bob._id
           done()
 
     describe '#createRelationshipBetween()', ->
 
       it 'expect to create a relationship between two documents (bidirectional)', (done) ->
-        alice.createRelationshipBetween bob, 'follows', {}, (err, relationships) ->
-          expect(err).to.be null
-          expect(relationships).have.length 2
+        alice.createRelationshipBetween bob, 'follows', ->
+          bob.allRelationships 'follows', (err, bobsRelationships) ->
+            value = null
+            hasIncoming = false
+            hasOutgoing = false
+            for relationship in bobsRelationships
+              hasOutgoing = relationship.from.name is 'bob' and relationship.to.name   is 'alice' unless hasOutgoing
+              hasIncoming = relationship.to.name   is 'bob' and relationship.from.name is 'alice' unless hasIncoming
+            expect(hasOutgoing).to.be true
+            expect(hasIncoming).to.be true
+            done()
 
-          _ids = {}
-          for relation in relationships
-            _ids[relation.start.data._id] = true
-          expect(_ids).to.only.have.keys( String(alice._id), String(bob._id) )
-
-          done()
-
-      it 'expect to get documents of start + end point of a relationship'#, (done) ->
-        # alice.createRelationshipBetween bob, 'follows'#, (err, relationships) ->
-
-        #   done()
 
     describe '#removeRelationshipsTo', ->
 

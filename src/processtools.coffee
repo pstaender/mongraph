@@ -17,6 +17,10 @@ sortOptionsAndCallback = (options, cb) ->
     { options: {}, cb: options }
   else
     { options: options or {}, cb: cb }
+
+sortAttributesAndCallback = (attributes, cb) ->
+  {options,cb} = sortOptionsAndCallback(attributes, cb)
+  { attributes: options, cb: cb}
     
 
 sortJoins = (args) ->
@@ -103,7 +107,6 @@ populateResultWithDocuments = (results, options, cb) ->
   options.relationships ?= {}
   options.collection ?= null # distinct collection
   options.where ?= null # query documents
-  options.debug = if options.debug is true or not options.debug? then {} else null
   options.debug?.where ?= []
   options.stripEmptyItems ?= true
   
@@ -152,7 +155,7 @@ populateResultWithDocuments = (results, options, cb) ->
           callback(err, results)
         else
           conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where)
-          options.debug.where.push(conditions) if options.debug
+          options.debug?.where.push(conditions)
           collection = getCollectionByCollectionName(result.data.collection, mongoose)
           collection.findOne conditions, (err, foundDocument) ->
             results[i].document = foundDocument
@@ -175,7 +178,7 @@ populateResultWithDocuments = (results, options, cb) ->
               intermediateCallback(null,null) #  results will be taken directly from results[i]
             else
               conditions = _buildQueryFromIdAndCondition(_id, unless isReferenceDocument then options.where)
-              options.debug.where.push(conditions) if options.debug
+              options.debug?.where?.push(conditions)
               collection = getCollectionByCollectionName(collectionName, mongoose)
               collection.findOne conditions, (err, foundDocument) ->
                 if foundDocument and results[i]
@@ -206,7 +209,7 @@ populateResultWithDocuments = (results, options, cb) ->
                     callback(null, path || results)
                   else
                     conditions = _buildQueryFromIdAndCondition(_id, options.where)
-                    options.debug.where.push(conditions) if options.debug
+                    options.debug?.where?.push(conditions)
                     collection = getCollectionByCollectionName(collectionName, mongoose)
                     collection.findOne conditions, (err, foundDocument) ->
                       if options.restructure
@@ -229,4 +232,4 @@ populateResultWithDocuments = (results, options, cb) ->
   join.when ->
     {error,result} = sortJoins(arguments)
     final(error, null)
-module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}
+module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, sortAttributesAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}
