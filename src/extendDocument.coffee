@@ -384,6 +384,10 @@ module.exports = (globalOptions) ->
   _queryGraphDB = (cypher, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     # TODO: type check
+    # try to "guess" process part from last statement
+    # TODO: nice or bad feature?! ... maybe too much magic 
+    if not options.processPart? and cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)?[2]
+      options.processPart = cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)[2]
     graphdb.query cypher, null, (errGraph, map) ->
       # Adding cypher query for better debugging
       options.debug = {} if options.debug is true
