@@ -116,6 +116,18 @@ describe "Mongraph", ->
         expect(mongraph.processtools.getObjectIDAsString(alice._id)).to.match(regexID)
         expect(mongraph.processtools.getObjectIDAsString(String(alice._id))).to.match(regexID)
 
+    describe '#getCollectionByCollectionName()', ->
+
+      it 'expect to get the collection object by collection name', ->
+        collection = mongraph.processtools.getCollectionByCollectionName('people')
+        expect(collection.constructor).to.be.an Object
+
+    describe '#getModelByCollectionName()', ->
+
+      it 'expect to get the model object by collection name', ->
+        model = mongraph.processtools.getModelByCollectionName('people')
+        expect(model.constructor).to.be.an Object
+
     describe '#sortTypeOfRelationshipAndOptionsAndCallback()', ->
 
       it 'expect to sort arguments', ->

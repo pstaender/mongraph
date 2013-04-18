@@ -85,10 +85,10 @@ getObjectIDsAsArray = (mixed) ->
     ids = [ getObjectIDAsString(mixed) ]
   ids
 
-getModelByCollectionName = (collectionName, mongoose) ->
-  if constructorNameOf(mongoose) is 'Mongoose'
-    models = mongoose.models
-  else unless mongoose
+getModelByCollectionName = (collectionName, mongooseHandler = mongoose) ->
+  if constructorNameOf(mongooseHandler) is 'Mongoose'
+    models = mongooseHandler.models
+  else unless mongooseHandler
     return null
   else
     # we assume that we have mongoose.models here
@@ -100,9 +100,9 @@ getModelByCollectionName = (collectionName, mongoose) ->
       name = models[nameOfModel].modelName
   name
 
-getCollectionByCollectionName = (collectionName, mongoose) ->
-  modelName = getModelByCollectionName(collectionName, mongoose)
-  mongoose.models[modelName] or mongoose.connections[0]?.collection(collectionName) or mongoose.collection(collectionName)
+getCollectionByCollectionName = (collectionName, mongooseHandler = mongoose) ->
+  modelName = getModelByCollectionName(collectionName, mongooseHandler)
+  mongooseHandler.models[modelName] or mongooseHandler.connections[0]?.collection(collectionName) or mongooseHandler.collection(collectionName)
 
 # Iterates through the neo4j's resultset and attach documents from mongodb
 # =====

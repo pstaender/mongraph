@@ -122,22 +122,24 @@
 
 <p>You can also make your custom graph queries:</p>
 
-<pre><code class="js">  document.queryGraph("START a = node(1), b = node(2) MATCH p = shortestPath( a-[*..5]-&gt;b ) RETURN p;", function(err, path, options) { ... });
-``
-
-To get more informations about made queries (and finally used options) inspect the passed through options argument (`debug: true` enables logging of queries):
+<pre><code class="js">  document.queryGraph(
+    "START a = node(1), b = node(2) MATCH path = shortestPath( a-[*..5]-&gt;b ) RETURN path;", 
+    { processPart: 'path' },
+    function(err, path, options) { ... }
+  );
 </code></pre>
 
-<p>js
-  document.incomingRelationships(
+<p>To get more informations about made queries (and finally used options) inspect the passed through options argument (<code>debug: true</code> enables logging of queries):</p>
+
+<pre><code class="js">  document.incomingRelationships(
     'similar', { debug: true }, function(err, found, options) {
-      // prints out finally used options and - if set to <code>true</code> - additional debug informations
+      // prints out finally used options and - if set to `true` - additional debug informations
       console.log(options);
       // prints out s.th. like:
       // { debug: { cypher: [ "START ... MATCH ..." , ...] ...}}
     }
   );
-```</p>
+</code></pre>
 
 <h3 id="works-together-with">Works together with</h3>
 
