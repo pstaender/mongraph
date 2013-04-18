@@ -303,9 +303,10 @@ module.exports = (globalOptions) ->
       levelDeepness = 15
       query = """
         START a = node(#{fromNode.id}), b = node(#{toNode.id}) 
-        MATCH p = shortestPath( a-[#{if typeOfRelationship then ':'+typeOfRelationship else ''}*..#{levelDeepness}]->b )
-        RETURN p;
+        MATCH path = shortestPath( a-[#{if typeOfRelationship then ':'+typeOfRelationship else ''}*..#{levelDeepness}]->b )
+        RETURN path;
       """
+      options.processPart = 'path'
       from.queryGraph(query, options, cb)
 
   Document::applyGraphRelationships = (options, cb) ->

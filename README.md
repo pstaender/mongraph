@@ -118,12 +118,18 @@ You can filter the documents (mongodb) **and** the relationships (neo4j):
           // we can query here with the familiar mongodb syntax
           title: /^[A-Z]/
         },
-        // graph queries are strings, because they are passed trugh the cypher query directly
-        // relationship objects are accessible as `r` by default
+        // queries on graph are strings, because they are passed trough the cypher query directly for now
+        // here: relationship objects are accessible as `r` by default, start node as `a` and end node (if is queried) as `b` 
         relationship: "r.category! = 'scientific report'"
       }
     }, _
   );
+```
+
+You can also make your custom graph queries:
+
+```js
+  document.queryGraph("START a = node(1), b = node(2) MATCH p = shortestPath( a-[*..5]->b ) RETURN p;", function(err, path, options) { ... });
 ```
 
 To get more informations about made queries (and finally used options) inspect the passed through options argument (`debug: true` enables logging of queries):

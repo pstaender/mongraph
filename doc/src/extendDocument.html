@@ -240,9 +240,10 @@ would it make sense?! not sure...</p></div></div><div class="code"><div class="w
       <span class="nv">levelDeepness = </span><span class="mi">15</span>
       <span class="nv">query = </span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">        START a = node(</span><span class="si">#{</span><span class="nx">fromNode</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="s">), b = node(</span><span class="si">#{</span><span class="nx">toNode</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="s">) </span>
-<span class="s">        MATCH p = shortestPath( a-[</span><span class="si">#{</span><span class="k">if</span> <span class="nx">typeOfRelationship</span> <span class="k">then</span> <span class="s">&#39;:&#39;</span><span class="o">+</span><span class="nx">typeOfRelationship</span> <span class="k">else</span> <span class="s">&#39;&#39;</span><span class="si">}</span><span class="s">*..</span><span class="si">#{</span><span class="nx">levelDeepness</span><span class="si">}</span><span class="s">]-&gt;b )</span>
-<span class="s">        RETURN p;</span>
+<span class="s">        MATCH path = shortestPath( a-[</span><span class="si">#{</span><span class="k">if</span> <span class="nx">typeOfRelationship</span> <span class="k">then</span> <span class="s">&#39;:&#39;</span><span class="o">+</span><span class="nx">typeOfRelationship</span> <span class="k">else</span> <span class="s">&#39;&#39;</span><span class="si">}</span><span class="s">*..</span><span class="si">#{</span><span class="nx">levelDeepness</span><span class="si">}</span><span class="s">]-&gt;b )</span>
+<span class="s">        RETURN path;</span>
 <span class="s">      &quot;&quot;&quot;</span>
+      <span class="nv">options.processPart = </span><span class="s">&#39;path&#39;</span>
       <span class="nx">from</span><span class="p">.</span><span class="nx">queryGraph</span><span class="p">(</span><span class="nx">query</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
 
   <span class="nv">Document::applyGraphRelationships = </span><span class="nf">(options, cb) -&gt;</span>

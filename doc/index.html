@@ -112,22 +112,32 @@
           // we can query here with the familiar mongodb syntax
           title: /^[A-Z]/
         },
-        // this query is a simple string, because it's passed directly to the cypher query for now
-        relationship: "relationship.category! = 'scientific report'"
+        // queries on graph are strings, because they are passed trough the cypher query directly for now
+        // here: relationship objects are accessible as `r` by default, start node as `a` and end node (if is queried) as `b` 
+        relationship: "r.category! = 'scientific report'"
       }
     }, _
   );
 </code></pre>
 
-<p>To get more informations about queries (and finally used options) inspect the passed through options argument (<code>debug: true</code> causes that made queries are attached to <code>options</code> as well):</p>
+<p>You can also make your custom graph queries:</p>
 
-<pre><code class="js">  document.incomingRelationships(
+<pre><code class="js">  document.queryGraph("START a = node(1), b = node(2) MATCH p = shortestPath( a-[*..5]-&gt;b ) RETURN p;", function(err, path, options) { ... });
+``
+
+To get more informations about made queries (and finally used options) inspect the passed through options argument (`debug: true` enables logging of queries):
+</code></pre>
+
+<p>js
+  document.incomingRelationships(
     'similar', { debug: true }, function(err, found, options) {
-      // prints out finally used options and - if set to `true` - additional debug informations
+      // prints out finally used options and - if set to <code>true</code> - additional debug informations
       console.log(options);
+      // prints out s.th. like:
+      // { debug: { cypher: [ "START ... MATCH ..." , ...] ...}}
     }
   );
-</code></pre>
+```</p>
 
 <h3 id="works-together-with">Works together with</h3>
 

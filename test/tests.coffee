@@ -212,7 +212,7 @@ describe "Mongraph", ->
         _createExamplePath (err, result, exampleNodes) ->
           expect(err).to.be null
           expect(result).to.have.length 1
-          options = { debug: true }
+          options = { debug: true, processPart: 'p' }
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 3
             _removeExampleNodes exampleNodes, ->
@@ -222,6 +222,7 @@ describe "Mongraph", ->
         _createExamplePath (err, result, exampleNodes) ->
           options =
             debug: true
+            processPart: 'p'
             where:
               document: { name: /^[A-Z]/ }
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
@@ -234,6 +235,7 @@ describe "Mongraph", ->
         _createExamplePath (err, result, exampleNodes) ->
           options =
             debug: true
+            processPart: 'p'
             collection: 'locations'
           mongraph.processtools.populateResultWithDocuments result, options, (err, populatedPath, options) ->
             expect(populatedPath).to.have.length 1

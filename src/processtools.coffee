@@ -205,9 +205,9 @@ populateResultWithDocuments = (results, options, cb) ->
           callback(null, null)
 
       # ### PATH
-      else if constructorNameOf(result) is 'Path' or constructorNameOf(result.p) is 'Path'
-        # In some cases path is in result.p or is directly p (depends on chyper query?! not sure...)
-        _p = result.p || result
+      else if constructorNameOf(result) is 'Path' or constructorNameOf(result[options.processPart]) is 'Path' or  constructorNameOf(result.path) is 'Path'
+        # Define an object identifier for processPart
+        _p = result[options.processPart] || result.path || result
         results[i].path = Array(_p._nodes.length)
         path = if options.restructure then Array(_p._nodes.length)
         for node, k in _p._nodes
