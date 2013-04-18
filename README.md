@@ -118,8 +118,9 @@ You can filter the documents (mongodb) **and** the relationships (neo4j):
           // we can query here with the familiar mongodb syntax
           title: /^[A-Z]/
         },
-        // this query is a simple string, because it's used directly to the cypher query for now
-        relationship: "relationship.category! = 'scientific report'"
+        // graph queries are strings, because they are passed trugh the cypher query directly
+        // relationship objects are accessible as `r` by default
+        relationship: "r.category! = 'scientific report'"
       }
     }, _
   );
