@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="en"><head><title>index</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="index"><meta name="groc-project-path" content="README.md"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">README.md</div></div><div id="document"><div class="segment"><div class="comments"><div class="wrapper"><h1 id="mongraph-m-rf">Mongraph [mɔ̃ ˈɡrɑːf]</h1>
+
+<p><a href="https://travis-ci.org/pstaender/mongraph"><img src="https://api.travis-ci.org/pstaender/mongraph.png" alt="Build Status" title="" /></a></p>
+
+<p>Mongraph combines documentstorage database with graph-database relationships by creating a corresponding node for each document.</p>
+
+<p><strong>Experimental. API may change.</strong></p>
+
+<h3 id="installation">Installation</h3>
+
+<pre><code class="sh">  $ npm install mongraph
+</code></pre>
+
+<p>or clone the repository to your project and install dependencies with npm:</p>
+
+<pre><code class="sh">  $ git clone git@github.com:pstaender/mongraph.git
+  $ cd mongraph &amp;&amp; npm install
+</code></pre>
+
+<h3 id="whats-it-good-for">What's it good for?</h3>
+
+<p>MongoDB is great for a lot of things but a bit weak at relationships. However Neo4j is very powerful at this point but not the best solution for document storage. So why not using the best of both worlds?</p>
+
+<h3 id="what-does-it-take">What does it take?</h3>
+
+<p>Every document which is created in MongoDB will have a corresponding node in Neo4j:</p>
+
+<pre><code>             [{ _id: 5169…2, _node_id: 1 }]                 -&gt; document in MongoDB
+                           / \
+                            |
+                            |
+                           \ /
+  ({ id: 1, data: { _id: 5169…2, collection: 'people'} })   -&gt; node in Neo4j
+</code></pre>
+
+<p>Each document has an extra attribute:</p>
+
+<ul>
+<li><code>_node_id</code> (id of the corresponding node)</li>
+</ul>
+
+<p>Each node has extra attributes:</p>
+
+<ul>
+<li><code>_id</code> (id of the corresponding document)</li>
+<li><code>collection</code> (name of the collection of the corresponding document)</li>
+</ul>
+
+<p>Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):</p>
+
+<pre><code>  (node#a) - { _from: "people:516…2", _to: "locations:516…3", _created_at: 1365849448 } - (node#b)
+</code></pre>
+
+<h3 id="what-can-it-do">What can it do?</h3>
+
+<p>To access the corresponding node:</p>
+
+<pre><code class="js">  // We can work with relationship after the document is stored in MongoDB
+  document = new Document({ title: 'Document Title'});
+  document.save(function(err, savedDocument){
+    savedDocument.log(savedDocument._node_id); // prints the id of the corresponding node
+    savedDocument.getNode(function(err, correspondingNode){
+      console.log(correspondingNode); // prints the node object
+    });
+  });
+</code></pre>
+
+<p>To access the corresponding document:</p>
+
+<pre><code class="js">  console.log(node.data._id); // prints the id of the corresponding document
+  console.log(node.data.collection); // prints the collection name of the corresponding 
+  node.getDocument(function(err, correspondingDocument){
+    console.log(correspondingDocument); // prints the document object
+  });
+</code></pre>
+
+<p>You can create relationships between documents like you can do in Neo4j with nodes:</p>
+
+<pre><code class="js">  // create an outgoing relationship to another document
+  // please remember that we have to work here always with callbacks...
+  // that's why we are having the streamline placeholder here `_` (better to read)
+  document.createRelationshipTo(
+    otherDocument, 'similar', { category: 'article' }, _
+  );
+  // create an incoming relationship from another document
+  document.createRelationshipFrom(
+    otherDocument, 'similar', { category: 'article' }, _
+  );
+  // create a relationship between documents (bidirectional)
+  document.createRelationshipBetween(
+    otherDocument, 'similar', { category: 'article'},  _
+  );
+</code></pre>
+
+<p>You can get and remove relationships from documents like you can do in Neo4j:</p>
+
+<pre><code class="js">  // get all documents which are pointing to this document with 'view'
+  document.incomingRelationships('similar', _);
+  // get all documents that are connected with 'view' (bidirectional)
+  document.allRelationships('similar', _);
+</code></pre>
+
+<p>You can filter the documents (mongodb) <strong>and</strong> the relationships (neo4j):</p>
+
+<pre><code class="js">  // get all similar documents where title starts with an uppercase
+  // and that are connected with the attribute `scientific report`
+  document.incomingRelationships(
+    'similar',
+    {
+      where: {
+        document: {
+          // we can query here with the familiar mongodb syntax
+          title: /^[A-Z]/
+        },
+        // this query is a simple string, because it's passed directly to the cypher query for now
+        relationship: "relationship.category! = 'scientific report'"
+      }
+    }, _
+  );
+</code></pre>
+
+<p>To get more informations about queries (and finally used options) inspect the passed through options argument (<code>debug: true</code> causes that made queries are attached to <code>options</code> as well):</p>
+
+<pre><code class="js">  document.incomingRelationships(
+    'similar', { debug: true }, function(err, found, options) {
+      // prints out finally used options and - if set to `true` - additional debug informations
+      console.log(options);
+    }
+  );
+</code></pre>
+
+<h3 id="works-together-with">Works together with</h3>
+
+<h4 id="following-databases">following databases</h4>
+
+<ul>
+<li>MongoDB (~2)</li>
+<li>Neo4j (~1.8)</li>
+</ul>
+
+<h4 id="following-npm-modules">following npm modules</h4>
+
+<ul>
+<li>mongoose ORM <a href="https://github.com/learnboost/mongoose">https://github.com/learnboost/mongoose</a> <code>npm install mongoose</code></li>
+<li>Neo4j REST API client by thingdom <a href="https://github.com/thingdom/node-neo4j">https://github.com/thingdom/node-neo4j</a> <code>npm install neo4j</code></li>
+</ul>
+
+<h3 id="examples-and-tests">Examples and Tests</h3>
+
+<p>You'll find examples in <code>test/tests.coffee</code> and <code>examples/</code>.</p>
+
+<h3 id="license">License</h3>
+
+<p>The MIT License (MIT) Copyright (c) 2013 Philipp Staender</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+
+<h3 id="todos">TODO's</h3>
+
+<ul>
+<li>caching of loaded Nodes and Documents</li>
+<li>avoid loading all documents if we have a specific mongodb query</li>
+<li>benchmarks</li>
+<li>more examples, documentation and better readme</li>
+</ul></div></div></div></div></body></html>

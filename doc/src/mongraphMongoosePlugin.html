@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="en"><head><title>src/mongraphMongoosePlugin</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="src/mongraphMongoosePlugin"><meta name="groc-project-path" content="src/mongraphMongoosePlugin.coffee"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/mongraphMongoosePlugin.coffee</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="nv">processtools = </span><span class="nx">require</span><span class="p">(</span><span class="s">&#39;./processtools&#39;</span><span class="p">)</span>
+
+<span class="nv">module.exports = exports = mongraphMongoosePlugin = </span><span class="nf">(schema, options = {}) -&gt;</span>
+
+  <span class="nx">options</span><span class="p">.</span><span class="nx">relationships</span> <span class="o">?=</span> <span class="p">{}</span>
+  <span class="nx">options</span><span class="p">.</span><span class="nx">relationships</span><span class="p">.</span><span class="nx">removeAllOutgoing</span>  <span class="o">?=</span> <span class="kc">true</span>
+  <span class="nx">options</span><span class="p">.</span><span class="nx">relationships</span><span class="p">.</span><span class="nx">removeAllIncoming</span>  <span class="o">?=</span> <span class="kc">true</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>node id of corresponding node</p></div></div><div class="code"><div class="wrapper">  <span class="nx">schema</span><span class="p">.</span><span class="nx">add</span>
+    <span class="nv">_node_id: </span><span class="nb">Number</span>
+    <span class="nx">schema</span><span class="p">.</span><span class="nx">add</span> <span class="nv">_relationships: </span><span class="p">{}</span> <span class="c1"># add an empty object as placeholder for relationships, use is optional</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>Extend middleware for graph use</p></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>Remove also all relationships
+TODO: maybe better/best practice not to do and leave nodes?!? </p></div></div><div class="code"><div class="wrapper">  <span class="nx">schema</span><span class="p">.</span><span class="nx">pre</span> <span class="s">&#39;remove&#39;</span><span class="p">,</span> <span class="nf">(errHandler, cb) -&gt;</span>
+    <span class="nv">opts =</span>
+      <span class="nv">includeRelationships: </span><span class="nx">options</span><span class="p">.</span><span class="nx">relationships</span><span class="p">.</span><span class="nx">removeAllOutgoing</span> <span class="o">and</span> <span class="nx">options</span><span class="p">.</span><span class="nx">relationships</span><span class="p">.</span><span class="nx">removeAllOutgoing</span>
+    <span class="nx">@removeNode</span> <span class="nx">opts</span><span class="p">,</span> <span class="nx">cb</span>
+
+  <span class="nx">schema</span><span class="p">.</span><span class="nx">pre</span> <span class="s">&#39;save&#39;</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="nf">(next, done) -&gt;</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>Attach node</p></div></div><div class="code"><div class="wrapper">    <span class="nv">doc = </span><span class="nx">@</span>
+    <span class="nx">next</span><span class="p">()</span>
+    <span class="nx">doc</span><span class="p">.</span><span class="nx">getNode</span> <span class="p">{</span> <span class="nv">forceCreation: </span><span class="kc">true</span> <span class="p">},</span> <span class="nx">done</span>
+      
+
+  </div></div></div></div></body></html>

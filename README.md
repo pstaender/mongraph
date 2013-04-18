@@ -118,20 +118,22 @@ You can filter the documents (mongodb) **and** the relationships (neo4j):
           // we can query here with the familiar mongodb syntax
           title: /^[A-Z]/
         },
-        // this query is a simple string, because it's passed directly to the cypher query for now
+        // this query is a simple string, because it's used directly to the cypher query for now
         relationship: "relationship.category! = 'scientific report'"
       }
     }, _
   );
 ```
 
-To get more informations about queries (and finally used options) inspect the passed through options argument (`debug: true` causes that made queries are attached to `options` as well):
+To get more informations about made queries (and finally used options) inspect the passed through options argument (`debug: true` enables logging of queries):
 
 ```js
   document.incomingRelationships(
     'similar', { debug: true }, function(err, found, options) {
       // prints out finally used options and - if set to `true` - additional debug informations
       console.log(options);
+      // prints out s.th. like:
+      // { debug: { cypher: [ "START ... MATCH ..." , ...] ...}}
     }
   );
 ```
@@ -140,13 +142,13 @@ To get more informations about queries (and finally used options) inspect the pa
 
 #### following databases
 
-* MongoDB (~2)
-* Neo4j (~1.8)
+  * MongoDB (~2)
+  * Neo4j (~1.8)
 
 #### following npm modules
 
-* mongoose ORM <https://github.com/learnboost/mongoose> `npm install mongoose`
-* Neo4j REST API client by thingdom <https://github.com/thingdom/node-neo4j> `npm install neo4j`
+  * mongoose ORM <https://github.com/learnboost/mongoose> `npm install mongoose`
+  * Neo4j REST API client by thingdom <https://github.com/thingdom/node-neo4j> `npm install neo4j`
 
 ### Examples and Tests
 

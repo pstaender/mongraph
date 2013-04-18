@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage-database with graph-database relationships",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "author": "Philipp Staender <philipp.staender@gmail.com>",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",
@@ -16,11 +16,12 @@
     "graphdatabase"
   ],
   "scripts": {
-    "test": "coffee --map -cb test src && mocha; npm run clean",
+    "test": "coffee -cb test src && mocha; npm run clean",
     "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",
     "build": "npm run clean && coffee -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",
     "documentation": "docco ./src/*.coffee",
+    "doc": "groc ./src/*.coffee README.md",
     "postinstall": "npm run build && npm run documentation"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "mongoose": "~3.6",
     "neo4j": "~0.2",
     "docco": "~0.6",
+    "groc": "~0.4",
     "source-map-support": "~0.1.2"
   },
   "dependencies": {
