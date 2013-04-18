@@ -129,7 +129,11 @@ You can filter the documents (mongodb) **and** the relationships (neo4j):
 You can also make your custom graph queries:
 
 ```js
-  document.queryGraph("START a = node(1), b = node(2) MATCH p = shortestPath( a-[*..5]->b ) RETURN p;", function(err, path, options) { ... });
+  document.queryGraph(
+    "START a = node(1), b = node(2) MATCH path = shortestPath( a-[*..5]->b ) RETURN path;", 
+    { processPart: 'path' },
+    function(err, path, options) { ... }
+  );
 ```
 
 To get more informations about made queries (and finally used options) inspect the passed through options argument (`debug: true` enables logging of queries):
