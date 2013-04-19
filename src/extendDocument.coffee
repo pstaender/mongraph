@@ -358,7 +358,7 @@ module.exports = (globalOptions) ->
             options?.debug?.where.push(conditions)
             doc.update conditions, (err, result) -> _finally(err,result,options)
           else
-            _finally(err,result,options)
+            _finally(err,null,options)
         else
           key = '_relationships.'+typeOfRelationship
           update = {}
@@ -376,7 +376,7 @@ module.exports = (globalOptions) ->
               options?.debug?.where.push(conditions)
               doc.update conditions, (err, result) -> _finally(err,result,options)
             else
-              _finally(err,result,options)
+              _finally(err,null,options)
 
 
   #### Private method to query neo4j directly

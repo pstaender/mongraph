@@ -126,7 +126,13 @@ describe "Mongraph", ->
 
       it 'expect to get the model object by collection name', ->
         model = mongraph.processtools.getModelByCollectionName('people')
-        expect(model.constructor).to.be.an Object
+        expect(model).to.be.an Object
+
+    describe '#getModelNameByCollectionName()', ->
+
+      it 'expect to get the model object by collection name', ->
+        modelName = mongraph.processtools.getModelNameByCollectionName('people')
+        expect(modelName).to.be.equal 'Person'
 
     describe '#sortTypeOfRelationshipAndOptionsAndCallback()', ->
 

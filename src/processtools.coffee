@@ -97,11 +97,14 @@ getModelByCollectionName = (collectionName, mongooseHandler = mongoose) ->
   for nameOfModel, i of models
     # iterate through models and find the corresponding collection and modelname
     if collectionName is models[nameOfModel].collection.name
-      name = models[nameOfModel].modelName
+      name = models[nameOfModel]#.modelName
   name
 
+getModelNameByCollectionName = (collectionName, mongooseHandler = mongoose) ->
+  getModelByCollectionName(collectionName, mongooseHandler)?.modelName
+
 getCollectionByCollectionName = (collectionName, mongooseHandler = mongoose) ->
-  modelName = getModelByCollectionName(collectionName, mongooseHandler)
+  modelName = getModelNameByCollectionName(collectionName, mongooseHandler)
   mongooseHandler.models[modelName] or mongooseHandler.connections[0]?.collection(collectionName) or mongooseHandler.collection(collectionName)
 
 # Iterates through the neo4j's resultset and attach documents from mongodb
@@ -246,4 +249,21 @@ populateResultWithDocuments = (results, options, cb) ->
   join.when ->
     {error,result} = sortJoins(arguments)
     final(error, null)
-module.exports = {populateResultWithDocuments, getObjectIDAsString, getObjectIDsAsArray, constructorNameOf, getObjectIdFromString, sortOptionsAndCallback, sortAttributesAndCallback, sortTypeOfRelationshipAndOptionsAndCallback, getModelByCollectionName, getCollectionByCollectionName, setMongoose, setNeo4j, extractCollectionAndId, ObjectId}
+
+module.exports = {
+  populateResultWithDocuments,
+  getObjectIDAsString,
+  getObjectIDsAsArray,
+  constructorNameOf,
+  getObjectIdFromString,
+  sortOptionsAndCallback,
+  sortAttributesAndCallback,
+  sortTypeOfRelationshipAndOptionsAndCallback,
+  getModelByCollectionName,
+  getModelNameByCollectionName,
+  getCollectionByCollectionName,
+  setMongoose,
+  setNeo4j,
+  extractCollectionAndId,
+  ObjectId }
+
