@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage-database with graph-database relationships",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "author": "Philipp Staender <philipp.staender@gmail.com>",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",
@@ -21,11 +21,9 @@
     "build": "npm run clean && coffee -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",
     "documentation": "docco ./src/*.coffee",
-    "doc": "groc ./src/*.coffee README.md",
-    "postinstall": "npm run build && npm run documentation"
+    "doc": "groc ./src/*.coffee README.md"
   },
   "devDependencies": {
-    "coffee-script": "~1.6.1",
     "mocha": "~1.9",
     "expect.js": "~0.2",
     "should": "~1.2",
