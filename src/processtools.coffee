@@ -1,5 +1,7 @@
 ObjectId = require('bson').ObjectID
 Join = require('join')
+extendRelationship = require('./extendRelationship').extend
+extendPath = require('./extendPath').extend
 
 # private
 # dbhandler
@@ -183,6 +185,8 @@ populateResultWithDocuments = (results, options, cb) ->
         # TODO: trigger updateRelationships for both sides if query was about and option is set to
         callback = join.add()
         fromAndToJoin = Join.create()
+        # Extend out Relationship object with additional methods
+        extendRelationship(result)
         for point in [ 'from', 'to']
           intermediateCallback = fromAndToJoin.add()
           do (point, intermediateCallback) ->
@@ -211,6 +215,7 @@ populateResultWithDocuments = (results, options, cb) ->
       else if constructorNameOf(result) is 'Path' or constructorNameOf(result[options.processPart]) is 'Path' or  constructorNameOf(result.path) is 'Path'
         # Define an object identifier for processPart
         _p = result[options.processPart] || result.path || result
+        extendPath(_p)
         results[i].path = Array(_p._nodes.length)
         path = if options.restructure then Array(_p._nodes.length)
         for node, k in _p._nodes
