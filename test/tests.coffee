@@ -515,13 +515,13 @@ describe "Mongraph", ->
     describe '#init() with specific options', ->
 
       it 'expect to store relationships (redundant) in document', (done) ->
-        alice.applyGraphRelationships (err, relationships) ->
+        alice.applyGraphRelationships { doPersist: true }, (err, relationships) ->
           expect(err).to.be null
           expect(relationships).to.only.have.keys 'knows', 'visits'
           expect(relationships.knows).to.have.length 2
           #  remove all 'visits' relationships and check the effect on the record
           alice.removeRelationships 'visits', { debug: true }, (err, result, options) ->
-            alice.applyGraphRelationships (err, relationships) ->
+            alice.applyGraphRelationships { doPersist: true }, (err, relationships) ->
               expect(err).to.be null
               expect(relationships).to.only.have.keys 'knows'
               expect(relationships.knows).to.have.length 2

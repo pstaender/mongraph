@@ -309,11 +309,15 @@ module.exports = (globalOptions) ->
       options.processPart = 'path'
       from.queryGraph(query, options, cb)
 
+  # TODO: refactor -> split into more methods
+
   Document::applyGraphRelationships = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     # relationships will be stored permanently on this document
-    # not for daily used recommend
-    options.doPersist ?= true
+    # not for productive usage
+    # -> it's deactivated by default, because I'm not sure that it'a good idea
+    # to store informations redundant (CAP/syncing)
+    options.doPersist ?= false
     sortedRelationships = {}
     typeOfRelationship = '*' # TODO: make optional
     doc = @
