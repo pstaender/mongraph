@@ -149,6 +149,14 @@ To get more informations about made queries (and finally used options) inspect t
   );
 ```
 
+### Your documents + nodes on neo4j
+
+By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:
+
+```
+  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25000001
+``` 
+
 ### Works together with
 
 #### following databases
@@ -177,7 +185,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### TODO's
 
-  * caching of loaded Nodes and Documents
   * avoid loading all documents if we have a specific mongodb query
   * benchmarks
   * more examples, documentation and better readme
+  * more effective queries on mongodb

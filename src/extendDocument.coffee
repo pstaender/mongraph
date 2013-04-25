@@ -148,9 +148,8 @@ module.exports = (globalOptions) ->
         if errSave
           cb(errSave, node, options)
         else
-          # do index, but we don't use it anymore
-          # TODO: remove maybe? maybe it can be used to query this way:
-          # getIndexedNode '_id', doc._id ...
+          # do index for better queries outside mongraph
+          # e.g. people/_id/5178fb1b48c7a4ae24000001
           node.index(collectionName, '_id', id)
           _processNode(node, doc, cb) 
     else

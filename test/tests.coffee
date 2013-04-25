@@ -6,12 +6,11 @@ require('source-map-support').install()
 expect     = require('expect.js')
 mongoose   = require('mongoose')
 neo4j      = require('neo4j')
-mongraph   = require('../src/mongraph')
-# remove all test-created documents, nodes + relationship on every test run
-# strongly recommend, for some tests mandatory... TODO: make tests independent from that option 
-cleanupDBs = true 
-nodesCount = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
-Join       = require('join')
+mongraph   = require("../src/mongraph")
+# remove all test-created nodes on every test run
+cleanupNodes = true
+nodesCount   = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
+Join         = require('join')
 
 describe "Mongraph", ->
 
@@ -60,15 +59,16 @@ describe "Mongraph", ->
         bar.save -> pub.save ->
           cb()
 
-    if cleanupDBs
+    if cleanupNodes
       # remove all records
       _countNodes (err, count) ->
         nodesCountBefore = count
         Person.remove -> Location.remove -> createExampleDocuments -> 
           done()
     else
-      createExampleDocuments -> 
-        done()
+      Person.remove -> Location.remove -> createExampleDocuments -> 
+        createExampleDocuments -> 
+          done()
 
   beforeEach (done) ->
     # remove all relationships
@@ -90,7 +90,7 @@ describe "Mongraph", ->
                     alice.createRelationshipTo pub, 'visits', ->
                       done()
   after (done) ->
-    return done() unless cleanupDBs
+    return done() unless cleanupNodes
     # Remove all persons and locations with documents + nodes
     join = Join.create()
     for record in [ alice, bob, charles, dave, elton, zoe, bar, pub ]
@@ -284,7 +284,7 @@ describe "Mongraph", ->
         elton.getNode (err, found) ->
           expect(err).not.to.be null
           expect(found).to.be null
-          elton.remove() if cleanupDBs
+          elton.remove() if cleanupNodes
           done()
 
       it 'expect to find always the same corresponding node to a stored document', (done) ->
@@ -296,8 +296,13 @@ describe "Mongraph", ->
           elton.getNode (err, node) ->
             expect(err).to.be null
             expect(node.id).to.be.equal node.id
-            elton.remove() if cleanupDBs
+            elton.remove() if cleanupNodes
             done()
+
+      it 'expect to find a node by collection and _id through index on neo4j', (done) ->
+        graph.getIndexedNode 'people', '_id', alice._id, (err, found) ->
+          expect(found.id).to.be.equal alice._node_id
+          done()
 
     describe '#createRelationshipTo()', ->
 
@@ -483,7 +488,7 @@ describe "Mongraph", ->
                 expect(found).to.be undefined
                 frank.allRelationships 'likes', (err, likes) ->
                   expect(likes).to.be null
-                  frank.remove() if cleanupDBs
+                  frank.remove() if cleanupNodes
                   done()
 
     describe '#shortestPath()', ->
@@ -557,7 +562,7 @@ describe "Mongraph", ->
                           dave.allRelationships '*', { where: { relationship: "r.instrument! = 'guitar'" }, debug: true }, (err, relations, options) ->
                             expect(relations).to.have.length 1
                             expect(relations[0].data.instrument).to.be.equal 'guitar'
-                            if cleanupDBs
+                            if cleanupNodes
                               elton.remove -> dave.remove -> done()
                             else
                               done()
