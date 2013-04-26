@@ -49,8 +49,8 @@ module.exports = (globalOptions) ->
     options.processPart ?= 'r'   
     options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
-    options.endNode ?= ''
-    options.endNode = endNode.id if typeof endNode is 'object'
+    options.endNodeId ?= ''
+    options.endNodeId = endNode.id if typeof endNode is 'object'
     options.debug = {} if options.debug is true
     doc = @
     id = processtools.getObjectIDAsString(doc)
@@ -61,7 +61,7 @@ module.exports = (globalOptions) ->
       
 
       cypher = """
-                START a = node(%(id)s)%(endNode)s
+                START a = node(%(id)s)%(endNodeId)s
                 MATCH (a)%(incoming)s[r%(relation)s]%(outgoing)s(b)
                 %(whereRelationship)s
                 %(action)s %(processPart)s;
@@ -77,7 +77,7 @@ module.exports = (globalOptions) ->
         action:             options.action.toUpperCase()
         processPart:        options.processPart
         whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
-        endNode:            if options.endNode then ", b = node(#{options.endNode})" else ''
+        endNodeId:          if options.endNodeId then ", b = node(#{options.endNodeId})" else ''
       options.startNode     ?= fromNode.id # for logging
       
 
@@ -252,7 +252,7 @@ module.exports = (globalOptions) ->
     from = @
     doc.getNode (nodeErr, endNode) ->
       return cb(nodeErr, endNode) if nodeErr
-      options.endNode = endNode.id
+      options.endNodeId = endNode.id
       from.queryRelationships typeOfRelationship, options, cb
 
   #### Removes incoming relationships to a specific Document
