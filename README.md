@@ -173,6 +173,35 @@ By default all corresponding nodes are created indexed with the collection-name 
 
 You'll find examples in `test/tests.coffee` and `examples/`.
 
+### Benchmarks
+
+`npm run benchmark` or `coffee benchmark/benchmark.coffee` should output s.th. in markdown syntax like:
+
+```
+### CREATING RECORDS
+
+* creating native mongodb documents x 964 ops/sec ±3.23% (68 runs sampled)
+* creating mongoose documents x 521 ops/sec ±1.25% (81 runs sampled)
+* creating neo4j nodes x 302 ops/sec ±13.87% (68 runs sampled)
+* creating mongraph documents x 132 ops/sec ±9.01% (68 runs sampled)
+
+**Fastest** is creating native mongodb documents
+
+**Slowest** is creating mongraph documents
+
+
+### FINDING RECORDS
+
+* selecting node x 279 ops/sec ±1.40% (84 runs sampled)
+* selecting native document x 627 ops/sec ±0.98% (80 runs sampled)
+* selecting mongoosse document x 574 ops/sec ±1.30% (78 runs sampled)
+* selecting document with corresponding node x 295 ops/sec ±9.45% (63 runs sampled)
+
+**Fastest** is selecting native document
+
+**Slowest** is selecting document with corresponding node
+```
+
 ### License
 
 Mongraph combines documentstorage-database with graph-database relationships
