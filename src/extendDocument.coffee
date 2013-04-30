@@ -38,6 +38,7 @@ module.exports = (globalOptions) ->
   # * loadDocuments: (true|false)
   # * endNode: '' (can be a node object or a nodeID)
   Document::queryRelationships = (typeOfRelationship, options, cb) ->
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # REMOVED: options can be a cypher query as string
     # options = { query: options } if typeof options is 'string'
     {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
@@ -94,6 +95,7 @@ module.exports = (globalOptions) ->
   #### Loads the equivalent node to this Document 
   Document::findCorrespondingNode = (options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     doc = @
 
     # you can force a reloading of a node
@@ -171,11 +173,13 @@ module.exports = (globalOptions) ->
     if @_node_id
       cb(null, @_node_id)
     else
-      @getNode cb
+      @getNode (err, node) ->
+        cb(err, node?.id || null)
 
   #### Creates a relationship from this Document to a given document
   Document::createRelationshipTo = (doc, typeOfRelationship, attributes = {}, cb) ->
     {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # assign cb + attribute arguments
     if typeof attributes is 'function'
       cb = attributes
@@ -276,6 +280,7 @@ module.exports = (globalOptions) ->
   #### Delete node including all incoming and outgoing relationships
   Document::removeNode = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # we don't distinguish between incoming and outgoing relationships here
     # would it make sense?! not sure...
     options.includeRelationships ?= true
@@ -295,6 +300,7 @@ module.exports = (globalOptions) ->
   #### Returns the shortest path between this and another document
   Document::shortestPathTo = (doc, typeOfRelationship = '', options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     from = @
     to = doc
     from.getNode (errFrom, fromNode) -> to.getNode (errTo, toNode) ->
@@ -312,6 +318,7 @@ module.exports = (globalOptions) ->
 
   Document::applyGraphRelationships = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # relationships will be stored permanently on this document
     # not for productive usage
     # -> it's deactivated by default, because I'm not sure that it'a good idea

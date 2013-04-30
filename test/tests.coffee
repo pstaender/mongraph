@@ -41,6 +41,7 @@ describe "Mongraph", ->
 
     # is used for checking that we are working with the mongoose model and not with native mongodb objects
     schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
+    # schema.set 'graphability', { mytest: true }
 
     Person   = mongoose.model "Person", schema
     Location = mongoose.model "Location", mongoose.Schema(name: String, lon: Number, lat: Number)
@@ -274,6 +275,73 @@ describe "Mongraph", ->
             expect(count).to.be.equal 2
             done()
 
+  describe 'mongraphMongoosePlugin', ->
+
+      describe '#schema', ->
+
+        it 'expect to have extra attributes reserved for use with neo4j', (done) ->
+          p = new Person name: 'Person'
+          p.save (err, doc) ->
+            expect(doc._node_id).to.be.above 0
+            # checks that we can set s.th.
+            doc._relationships = id: 1
+            expect(doc._relationships.id).to.be.equal 1
+            p.remove ->
+              done()
+
+        it 'expect that schema extensions and hooks can be optional', (done) ->
+          calledPreSave = false
+
+          join = Join.create()
+          doneDisabled     = join.add()
+          doneNoSaveHook   = join.add()
+          doneNoDeleteHook = join.add()
+          schema   = new mongoose.Schema name: String
+          schema.set 'graphability', false
+          Guitar   = mongoose.model "Guitar",   schema
+          guitar   = new Guitar name: 'Fender'
+          guitar.save (err, doc) ->
+            expect(err).to.be null
+            expect(doc._node_id).to.be undefined
+            doc.getNode (err, node) ->
+              expect(err).not.to.be null
+              expect(node).to.be null
+              doc.remove ->
+                doneDisabled()
+
+          schema   = new mongoose.Schema name: String
+          schema.set 'graphability', middleware: preRemove: false
+          Keyboard = mongoose.model "Keyboard", schema
+          keyboard = new Keyboard name: 'DX7'
+          keyboard.save (err, doc) ->
+            doc.getNode (err, node) ->
+              # we have to delete the node manually becaud we missed out the hook
+              doc.remove ->
+                graph.getNodeById node.id, (err, foundNode) ->
+                  expect(node).to.be.an 'object'
+                  node.delete ->
+                    return doneNoDeleteHook()
+
+          schema   = new mongoose.Schema name: String
+          schema.set 'graphability', middleware: preSave: false
+          # explicit overriding middleware
+          schema.pre 'save', (next) ->
+            calledPreSave = true
+            next()
+          
+          Drumkit  = mongoose.model "Drumkit",  schema
+          drums    = new Drumkit name: 'Tama'
+          drums.save (err, doc) ->
+            expect(err).to.be null
+            expect(calledPreSave).to.be true
+            expect(doc._cached_node).not.be.an 'object'
+            drums.remove ->
+              doneNoSaveHook()
+
+          join.when ->
+            done()
+
+
   describe 'mongoose::Document', ->
 
     describe '#getNode()', ->
@@ -284,7 +352,6 @@ describe "Mongraph", ->
         elton.getNode (err, found) ->
           expect(err).not.to.be null
           expect(found).to.be null
-          elton.remove() if cleanupNodes
           done()
 
       it 'expect to find always the same corresponding node to a stored document', (done) ->
