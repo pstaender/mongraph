@@ -62,6 +62,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 3,
+                "title": "Your documents + nodes on neo4j",
+                "slug": "your-documents--nodes-on-neo4j"
+              },
+              "depth": 3
+            }, {
+              "type": "heading",
+              "data": {
+                "level": 3,
                 "title": "Works together with",
                 "slug": "works-together-with"
               },
@@ -91,6 +99,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
                 "level": 3,
                 "title": "Examples and Tests",
                 "slug": "examples-and-tests"
+              },
+              "depth": 3
+            }, {
+              "type": "heading",
+              "data": {
+                "level": 3,
+                "title": "Benchmarks",
+                "slug": "benchmarks"
               },
               "depth": 3
             }, {
@@ -152,6 +168,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "type": "heading",
           "data": {
             "level": 3,
+            "title": "Your documents + nodes on neo4j",
+            "slug": "your-documents--nodes-on-neo4j"
+          },
+          "depth": 3
+        }, {
+          "type": "heading",
+          "data": {
+            "level": 3,
             "title": "Works together with",
             "slug": "works-together-with"
           },
@@ -181,6 +205,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
             "level": 3,
             "title": "Examples and Tests",
             "slug": "examples-and-tests"
+          },
+          "depth": 3
+        }, {
+          "type": "heading",
+          "data": {
+            "level": 3,
+            "title": "Benchmarks",
+            "slug": "benchmarks"
           },
           "depth": 3
         }, {
@@ -259,6 +291,48 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
                 "slug": "extend-neo4j"
               },
               "depth": 3
+            }
+          ]
+        }, {
+          "type": "file",
+          "data": {
+            "language": {
+              "nameMatchers": [".coffee", "Cakefile"],
+              "pygmentsLexer": "coffee-script",
+              "singleLineComment": ["#"],
+              "name": "CoffeeScript"
+            },
+            "sourcePath": "/Users/philipp/code/mongraph/src/extendPath.coffee",
+            "projectPath": "src/extendPath.coffee",
+            "targetPath": "src/extendPath",
+            "title": "extendPath"
+          },
+          "depth": 2,
+          "outline": []
+        }, {
+          "type": "file",
+          "data": {
+            "language": {
+              "nameMatchers": [".coffee", "Cakefile"],
+              "pygmentsLexer": "coffee-script",
+              "singleLineComment": ["#"],
+              "name": "CoffeeScript"
+            },
+            "sourcePath": "/Users/philipp/code/mongraph/src/extendRelationship.coffee",
+            "projectPath": "src/extendRelationship.coffee",
+            "targetPath": "src/extendRelationship",
+            "title": "extendRelationship"
+          },
+          "depth": 2,
+          "outline": [
+            {
+              "type": "heading",
+              "data": {
+                "level": 2,
+                "title": "Helper as workaround for missing prototyp availibility of neo4j module Relationship object",
+                "slug": "helper-as-workaround-for-missing-prototyp-availibility-of-neo4j-module-relationship-object"
+              },
+              "depth": 2
             }
           ]
         }, {

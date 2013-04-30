@@ -141,6 +141,13 @@
   );
 </code></pre>
 
+<h3 id="your-documents--nodes-on-neo4j">Your documents + nodes on neo4j</h3>
+
+<p>By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:</p>
+
+<pre><code>  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25000001
+</code></pre>
+
 <h3 id="works-together-with">Works together with</h3>
 
 <h4 id="following-databases">following databases</h4>
@@ -161,21 +168,59 @@
 
 <p>You'll find examples in <code>test/tests.coffee</code> and <code>examples/</code>.</p>
 
+<h3 id="benchmarks">Benchmarks</h3>
+
+<p><code>npm run benchmark</code> or <code>coffee benchmark/benchmark.coffee</code> should output s.th. in markdown syntax like:</p>
+
+<pre><code>### CREATING RECORDS
+
+* creating native mongodb documents x 964 ops/sec ±3.23% (68 runs sampled)
+* creating mongoose documents x 521 ops/sec ±1.25% (81 runs sampled)
+* creating neo4j nodes x 302 ops/sec ±13.87% (68 runs sampled)
+* creating mongraph documents x 132 ops/sec ±9.01% (68 runs sampled)
+
+**Fastest** is creating native mongodb documents
+
+**Slowest** is creating mongraph documents
+
+
+### FINDING RECORDS
+
+* selecting node x 279 ops/sec ±1.40% (84 runs sampled)
+* selecting native document x 627 ops/sec ±0.98% (80 runs sampled)
+* selecting mongoosse document x 574 ops/sec ±1.30% (78 runs sampled)
+* selecting document with corresponding node x 295 ops/sec ±9.45% (63 runs sampled)
+
+**Fastest** is selecting native document
+
+**Slowest** is selecting document with corresponding node
+</code></pre>
+
 <h3 id="license">License</h3>
 
-<p>The MIT License (MIT) Copyright (c) 2013 Philipp Staender</p>
+<p>Mongraph combines documentstorage-database with graph-database relationships
+Copyright (C) 2013 Philipp Staender <a href="&#x6d;&#97;&#x69;&#x6c;&#116;o:&#x70;&#x68;&#x69;&#x6c;&#x69;&#x70;&#x70;&#46;&#x73;&#x74;&#x61;&#101;&#110;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#99;&#x6f;&#x6d;">&#x70;&#x68;&#x69;&#x6c;&#x69;&#x70;&#x70;&#46;&#x73;&#x74;&#x61;&#101;&#110;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#99;&#x6f;&#x6d;</a></p>
 
-<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
 
-<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.</p>
 
-<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<p>You should have received a copy of the GNU General Public License
+along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
+
+<p>(until version 0.1.12 mongoose was available under the MIT license)</p>
 
 <h3 id="todos">TODO's</h3>
 
 <ul>
-<li>caching of loaded Nodes and Documents</li>
 <li>avoid loading all documents if we have a specific mongodb query</li>
 <li>benchmarks</li>
 <li>more examples, documentation and better readme</li>
+<li>more effective queries on mongodb</li>
 </ul></div></div></div></div></body></html>
