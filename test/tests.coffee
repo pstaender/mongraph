@@ -41,7 +41,6 @@ describe "Mongraph", ->
 
     # is used for checking that we are working with the mongoose model and not with native mongodb objects
     schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
-    # schema.set 'graphability', { mytest: true }
 
     Person   = mongoose.model "Person", schema
     Location = mongoose.model "Location", mongoose.Schema(name: String, lon: Number, lat: Number)
