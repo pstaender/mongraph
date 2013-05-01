@@ -522,8 +522,8 @@ describe "Mongraph", ->
           expect(count).to.be.above 0
           alice.allRelationships { count: 'a', debug: true }, (err, res, options) ->
             expect(res[0]).to.be.above count
-            alice.allRelationships { count: '*' }, (err, res, options) ->
-              expect(res[0] >= count).to.be true
+            alice.allRelationships { count: '*' }, (err, resnew, options) ->
+              expect(resnew >= res[0]).to.be true
               done()
 
     describe '#incomingRelationships()', ->
