@@ -516,6 +516,16 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'Bar', 'Pub' )
           done()
 
+      it 'expect to count all matched relationships, nodes or both', (done) ->
+        alice.allRelationships { countDistinct: 'a', debug: true }, (err, res, options) ->
+          count = res[0]
+          expect(count).to.be.above 0
+          alice.allRelationships { count: 'a', debug: true }, (err, res, options) ->
+            expect(res[0]).to.be.above count
+            alice.allRelationships { count: '*' }, (err, res, options) ->
+              expect(res[0] >= count).to.be true
+              done()
+
     describe '#incomingRelationships()', ->
 
       it 'expect to get only incoming relationships', (done) ->

@@ -43,15 +43,20 @@ module.exports = (globalOptions) ->
     # options = { query: options } if typeof options is 'string'
     {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
     # build query from options
-    typeOfRelationship ?= '*'
-    typeOfRelationship = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
-    options.direction ?= 'both'
-    options.action ?= 'RETURN'
-    options.processPart ?= 'r'   
+    typeOfRelationship          ?= '*'
+    typeOfRelationship           = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
+    options.direction           ?= 'both'
+    options.action              ?= 'RETURN'
+    if options.count or options.countDistinct
+      options.count              = 'distinct '+options.countDistinct if options.countDistinct
+      options.returnStatement    = 'count('+options.count+')' 
+      options.processPart        = 'count('+options.count+')' 
+    options.processPart         ?= 'r'
+    options.returnStatement     ?= options.processPart   
     options.referenceDocumentID ?= @_id 
     # endNode can be string or node object
-    options.endNodeId ?= ''
-    options.endNodeId = endNode.id if typeof endNode is 'object'
+    options.endNodeId           ?= ''
+    options.endNodeId            = endNode.id if typeof endNode is 'object'
     options.debug = {} if options.debug is true
     doc = @
     id = processtools.getObjectIDAsString(doc)
@@ -65,7 +70,7 @@ module.exports = (globalOptions) ->
                 START a = node(%(id)s)%(endNodeId)s
                 MATCH (a)%(incoming)s[r%(relation)s]%(outgoing)s(b)
                 %(whereRelationship)s
-                %(action)s %(processPart)s;
+                %(action)s %(returnStatement)s;
                """
       
 
@@ -76,7 +81,7 @@ module.exports = (globalOptions) ->
         outgoing:           if options.direction is 'outgoing' then '->' else '-'
         relation:           typeOfRelationship
         action:             options.action.toUpperCase()
-        processPart:        options.processPart
+        returnStatement:    options.returnStatement
         whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
         endNodeId:          if options.endNodeId then ", b = node(#{options.endNodeId})" else ''
       options.startNode     ?= fromNode.id # for logging
