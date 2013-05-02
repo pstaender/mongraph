@@ -27,7 +27,7 @@ init = (options) ->
   config.options.cacheAttachedNodes ?= true # recommend to decrease requests to neo4j
 
   # Allow overriding if mongrapg already was inizialized
-  config.options.overrideProtypeFunctions = true if alreadyInitialized
+  config.options.overrideProtoypeFunctions = true if alreadyInitialized
   
   # used for extendDocument + extendNode
   config.options.mongoose = options.mongoose

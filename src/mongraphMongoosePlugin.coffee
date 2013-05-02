@@ -1,5 +1,3 @@
-processtools = require('./processtools')
-
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
   schemaOptions = schema.options

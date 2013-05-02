@@ -20,7 +20,7 @@ module.exports = (globalOptions) ->
   Node = node.constructor
 
   # Check that we don't override existing functions
-  if globalOptions.overrideProtypeFunctions isnt true
+  if globalOptions.overrideProtoypeFunctions isnt true
     for functionName in [ 'getDocument', 'getMongoId', 'getCollectionName' ]
       throw new Error("Will not override neo4j::Node.prototype.#{functionName}") unless typeof node.constructor::[functionName] is 'undefined'
 
