@@ -25,7 +25,7 @@
 
 <p>Every document which is created in MongoDB will have a corresponding node in Neo4j:</p>
 
-<pre><code>             [{ _id: 5169…2, _node_id: 1 }]                 -&gt; document in MongoDB
+<pre><code>             [{ _id: 5169…2, _node_id: 1 }]                  -&gt; document in MongoDB
                            / \
                             |
                             |
@@ -46,9 +46,9 @@
 <li><code>_collection</code> (name of the collection of the corresponding document)</li>
 </ul>
 
-<p>Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):</p>
+<p>Each relationship will store informations about the start- and end-point-document and it's collection:</p>
 
-<pre><code>  (node#a) - { _from: "people:516…2", _to: "locations:516…3", _created_at: 1365849448 } - (node#b)
+<pre><code>  (node#a) - { _from: "people:516…2", _to: "locations:516…3" … } - (node#b)
 </code></pre>
 
 <h3 id="what-can-it-do">What can it do?</h3>
@@ -60,7 +60,7 @@
   document.save(function(err, savedDocument){
     savedDocument.log(savedDocument._node_id); // prints the id of the corresponding node
     savedDocument.getNode(function(err, correspondingNode){
-      console.log(correspondingNode); // prints the node object
+      console.log(correspondingNode); // prints the node
     });
   });
 </code></pre>
@@ -70,7 +70,7 @@
 <pre><code class="js">  console.log(node.data._id); // prints the id of the corresponding document
   console.log(node.data._collection); // prints the collection name of the corresponding 
   node.getDocument(function(err, correspondingDocument){
-    console.log(correspondingDocument); // prints the document object
+    console.log(correspondingDocument); // prints the document
   });
 </code></pre>
 
@@ -109,7 +109,7 @@
     {
       where: {
         document: {
-          // we can query here with the familiar mongodb syntax
+          // we can query with the familiar mongodb query
           title: /^[A-Z]/
         },
         // queries on graph are strings, because they are passed trough the cypher query directly for now
@@ -125,7 +125,7 @@
 <pre><code class="js">  document.queryGraph(
     "START a = node(1), b = node(2) MATCH path = shortestPath( a-[*..5]-&gt;b ) RETURN path;", 
     { processPart: 'path' },
-    function(err, path, options) { ... }
+    function(err, path, options) { … }
   );
 </code></pre>
 
@@ -134,9 +134,8 @@
 <pre><code class="js">  document.incomingRelationships(
     'similar', { debug: true }, function(err, found, options) {
       // prints out finally used options and - if set to `true` - additional debug informations
-      console.log(options);
-      // prints out s.th. like:
-      // { debug: { cypher: [ "START ... MATCH ..." , ...] ...}}
+      console.log(options.debug);
+      // { cypher: [ "START … MATCH …" , …] … }}
     }
   );
 </code></pre>
@@ -145,7 +144,7 @@
 
 <p>By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:</p>
 
-<pre><code>  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25000001
+<pre><code>  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25004711
 </code></pre>
 
 <h3 id="works-together-with">Works together with</h3>
@@ -170,7 +169,7 @@
 
 <h3 id="benchmarks">Benchmarks</h3>
 
-<p><code>npm run benchmark</code> or <code>coffee benchmark/benchmark.coffee</code> should output s.th. in markdown syntax like:</p>
+<p><code>npm run benchmark</code> should output s.th. like:</p>
 
 <pre><code>### CREATING RECORDS
 
@@ -201,13 +200,13 @@
 <h4 id="0114">0.1.14</h4>
 
 <ul>
-<li>API Change: the collection of the corresponding document will be stored as <code>_collection</code> instead of <code>collection</code> in each node. e.g.: <code>node -&gt; { data: { _id: 5ef6…, _collection: 'people' } }</code>, reason: fits better to naming conventions projectwide</li>
+<li><strong>API Change:</strong> the collection of the corresponding document will be stored from now on as <code>_collection</code> instead of <code>collection</code> in each node. e.g.: <code>node -&gt; { data: { _id: 5ef6…, _collection: 'people' } }</code>, reason: continious name conventions in node-, document-, relationship- + path objects</li>
 </ul>
 
 <h3 id="license">License</h3>
 
 <p>Mongraph combines documentstorage-database with graph-database relationships
-Copyright (C) 2013 Philipp Staender <a href="&#109;a&#105;&#x6c;&#x74;&#x6f;:&#112;&#x68;&#x69;&#108;&#105;&#112;&#x70;&#46;&#115;&#x74;&#97;&#x65;&#x6e;&#100;&#x65;r&#x40;&#103;&#x6d;&#97;&#105;&#x6c;&#46;c&#x6f;m">&#112;&#x68;&#x69;&#108;&#105;&#112;&#x70;&#46;&#115;&#x74;&#97;&#x65;&#x6e;&#100;&#x65;r&#x40;&#103;&#x6d;&#97;&#105;&#x6c;&#46;c&#x6f;m</a></p>
+Copyright (C) 2013 Philipp Staender <a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;:&#x70;&#x68;&#105;&#x6c;&#105;&#112;&#x70;&#46;&#x73;t&#97;&#x65;&#x6e;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;a&#x69;&#108;&#46;&#99;&#111;&#109;">&#x70;&#x68;&#105;&#x6c;&#105;&#112;&#x70;&#46;&#x73;t&#97;&#x65;&#x6e;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;a&#x69;&#108;&#46;&#99;&#111;&#109;</a></p>
 
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -221,8 +220,6 @@ GNU General Public License for more details.</p>
 
 <p>You should have received a copy of the GNU General Public License
 along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
-
-<p>(until version 0.1.12 mongoose was available under the MIT license)</p>
 
 <h3 id="todos">TODO's</h3>
 

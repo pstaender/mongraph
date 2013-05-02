@@ -1,5 +1,3 @@
-_ = require 'underscore'
-
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
   schemaOptions = schema.options

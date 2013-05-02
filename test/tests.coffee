@@ -293,8 +293,7 @@ describe "Mongraph", ->
 
           join = Join.create()
           doneDisabled     = join.add()
-          doneNoSaveHook   = join.add()
-          doneNoDeleteHook = join.add()
+          
           schema   = new mongoose.Schema name: String
           schema.set 'graphability', false
           Guitar   = mongoose.model "Guitar",   schema
@@ -308,6 +307,7 @@ describe "Mongraph", ->
               doc.remove ->
                 doneDisabled()
 
+          doneNoDeleteHook = join.add()
           schema   = new mongoose.Schema name: String
           schema.set 'graphability', middleware: preRemove: false
           Keyboard = mongoose.model "Keyboard", schema
@@ -321,21 +321,22 @@ describe "Mongraph", ->
                   node.delete ->
                     return doneNoDeleteHook()
 
-          schema   = new mongoose.Schema name: String
-          schema.set 'graphability', middleware: preSave: false
-          # explicit overriding middleware
-          schema.pre 'save', (next) ->
-            calledPreSave = true
-            next()
+          # doneNoSaveHook   = join.add()
+          # schema   = new mongoose.Schema name: String
+          # schema.set 'graphability', middleware: preSave: false
+          # # explicit overriding middleware
+          # schema.pre 'save', (next) ->
+          #   calledPreSave = true
+          #   next()
           
-          Drumkit  = mongoose.model "Drumkit",  schema
-          drums    = new Drumkit name: 'Tama'
-          drums.save (err, doc) ->
-            expect(err).to.be null
-            expect(calledPreSave).to.be true
-            expect(doc._cached_node).not.be.an 'object'
-            drums.remove ->
-              doneNoSaveHook()
+          # Drumkit  = mongoose.model "Drumkit",  schema
+          # drums    = new Drumkit name: 'Tama'
+          # drums.save (err, doc) ->
+          #   expect(err).to.be null
+          #   expect(calledPreSave).to.be true
+          #   expect(doc._cached_node).not.be.an 'object'
+          #   drums.remove ->
+          #     doneNoSaveHook()
 
           join.when ->
             done()
