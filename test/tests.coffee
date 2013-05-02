@@ -162,7 +162,7 @@ describe "Mongraph", ->
 
       it 'expect to get a node populated with the corresponding document', (done) ->
         _id = String(alice._id)
-        node = graph.createNode { collection: 'people', _id: _id }
+        node = graph.createNode { _collection: 'people', _id: _id }
         node.save (err, storedNode) ->
           expect(err).to.be null
           expect(storedNode).to.be.a node.constructor
@@ -179,8 +179,8 @@ describe "Mongraph", ->
         _fromID         = String(alice._id)
         _toID           = String(bob._id)
         collectionName  = alice.constructor.collection.name
-        from            = graph.createNode { collection: 'people', _id: _fromID }
-        to              = graph.createNode { collection: 'people', _id: _toID }
+        from            = graph.createNode { _collection: 'people', _id: _fromID }
+        to              = graph.createNode { _collection: 'people', _id: _toID }
         from.save (err, fromNode) -> to.save (err, toNode) ->
           fromNode.createRelationshipTo toNode, 'connected', { _from: collectionName+":"+_fromID, _to: collectionName+":"+_toID }, (err) ->
             expect(err).to.be null
@@ -205,9 +205,9 @@ describe "Mongraph", ->
         _toID           = String(pub._id)
         people          = alice.constructor.collection.name
         locations       = pub.constructor.collection.name
-        from            = graph.createNode { collection: 'people', _id: _fromID }
-        through         = graph.createNode { collection: 'people', _id: _throughID }
-        to              = graph.createNode { collection: 'locations', _id: _toID }
+        from            = graph.createNode { _collection: 'people', _id: _fromID }
+        through         = graph.createNode { _collection: 'people', _id: _throughID }
+        to              = graph.createNode { _collection: 'locations', _id: _toID }
         from.save (err, fromNode) -> through.save (err, throughNode) -> to.save (err, toNode) ->
           fromNode.createRelationshipTo throughNode, 'connected', { _from: people+':'+_fromID,    _to: people+':'+_throughID }, (err) ->
             throughNode.createRelationshipTo toNode, 'connected', { _from: people+':'+_throughID, _to: locations+':'+_toID }, (err) ->

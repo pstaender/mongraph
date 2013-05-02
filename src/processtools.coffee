@@ -147,9 +147,9 @@ populateResultWithDocuments = (results, options, cb) ->
       cleanedResults = []
       for result in results
         cleanedResults.push(result) if result?
-      cb(null, cleanedResults, options)
+      cb(null, cleanedResults, options) if typeof cb is 'function'
     else
-      cb(null, results, options)
+      cb(null, results, options) if typeof cb is 'function'
 
   # TODO: if distinct collection
 
@@ -166,16 +166,16 @@ populateResultWithDocuments = (results, options, cb) ->
     do (result, i) ->
       
       # ### NODE
-      if constructorNameOf(result) is 'Node' and result.data?.collection and result.data?._id 
+      if constructorNameOf(result) is 'Node' and result.data?._collection and result.data?._id 
         callback = join.add()
         isReferenceDocument = options.referenceDocumentID is result.data._id
         # skip if distinct collection if differ
-        if options.collection and options.collection isnt result.data.collection
+        if options.collection and options.collection isnt result.data._collection
           callback(err, results)
         else
           conditions = _buildQueryFromIdAndCondition(result.data._id, unless isReferenceDocument then options.where?.document)
           options.debug?.where.push(conditions)
-          collection = getCollectionByCollectionName(result.data.collection, mongoose)
+          collection = getCollectionByCollectionName(result.data._collection, mongoose)
           collection.findOne conditions, (err, foundDocument) ->
             results[i].document = foundDocument
             callback(err, results)
@@ -225,7 +225,7 @@ populateResultWithDocuments = (results, options, cb) ->
               graphdb.getNode node._data.self, (err, foundNode) ->
                 if foundNode?.data?._id
                   isReferenceDocument = options.referenceDocumentID is foundNode.data._id
-                  collectionName = foundNode.data.collection
+                  collectionName = foundNode.data._collection
                   _id = foundNode.data._id
                   if options.collection and options.collection isnt collectionName and not isReferenceDocument 
                     callback(null, path || results)

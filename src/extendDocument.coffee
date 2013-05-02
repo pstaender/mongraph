@@ -150,7 +150,7 @@ module.exports = (globalOptions) ->
           _processNode(node,doc,cb)
     else if options.doCreateIfNotExists or options.forceCreation is true
       # create a new one
-      node = graphdb.createNode( _id: id, collection: collectionName )
+      node = graphdb.createNode( _id: id, _collection: collectionName )
       node.save (errSave, node) ->
         if errSave
           cb(errSave, node, options)

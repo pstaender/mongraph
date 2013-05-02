@@ -34,7 +34,7 @@ Every document which is created in MongoDB will have a corresponding node in Neo
                             |
                             |
                            \ /
-  ({ id: 1, data: { _id: 5169…2, collection: 'people'} })   -> node in Neo4j
+  ({ id: 1, data: { _id: 5169…2, _collection: 'people'} })   -> node in Neo4j
 ```
 
 Each document has an extra attribute:
@@ -44,7 +44,7 @@ Each document has an extra attribute:
 Each node has extra attributes:
 
   * `_id` (id of the corresponding document)
-  * `collection` (name of the collection of the corresponding document)
+  * `_collection` (name of the collection of the corresponding document)
 
 Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):
 
@@ -71,7 +71,7 @@ To access the corresponding document:
 
 ```js
   console.log(node.data._id); // prints the id of the corresponding document
-  console.log(node.data.collection); // prints the collection name of the corresponding 
+  console.log(node.data._collection); // prints the collection name of the corresponding 
   node.getDocument(function(err, correspondingDocument){
     console.log(correspondingDocument); // prints the document object
   });
@@ -201,6 +201,12 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 
 **Slowest** is selecting document with corresponding node
 ```
+
+### Changelogs
+
+#### 0.1.14
+
+* API Change: the collection of the corresponding document will be stored as `_collection` instead of `collection` in each node. e.g.: `node -> { data: { _id: 5ef6…, _collection: 'people' } }`, reason: fits better to naming conventions projectwide
 
 ### License
 

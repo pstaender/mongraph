@@ -46,7 +46,7 @@ module.exports = (globalOptions) ->
     # try to extract collection from url (indexed namespace)
     # TODO: better could be via parent document if exists
     # indexed: 'http://localhost:7474/db/data/index/node/people/_id/516123bcc86e28485e000007/755' }
-    @_data?.indexed?.match(/\/data\/index\/node\/(.+?)\//)?[1] or @_data?.data.collection
+    @_data?.indexed?.match(/\/data\/index\/node\/(.+?)\//)?[1] || @_data?.data._collection
 
   #### Returns the mongodb document _id from stored key/value
   Node::getMongoId = ->
