@@ -1,3 +1,5 @@
+_ = require 'underscore'
+
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
   schemaOptions = schema.options
@@ -15,9 +17,9 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
   schemaOptions.graphability.middleware.preRemove ?= true
   schemaOptions.graphability.middleware.preSave   ?= true 
 
-  options.relationships ?= {}
-  options.relationships.removeAllOutgoing ?= true
-  options.relationships.removeAllIncoming ?= true
+  schemaOptions.graphability.relationships ?= {}
+  schemaOptions.graphability.relationships.removeAllOutgoing ?= true
+  schemaOptions.graphability.relationships.removeAllIncoming ?= true
 
   if schemaOptions.graphability.schema
     # node id of corresponding node
@@ -34,7 +36,7 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
       return next(null) unless @._node_id > 0
       # Remove also all relationships
       opts =
-        includeRelationships: options.relationships.removeAllOutgoing and options.relationships.removeAllOutgoing
+        includeRelationships: schemaOptions.graphability.relationships.removeAllOutgoing and schemaOptions.graphability.relationships.removeAllOutgoing
       @removeNode opts, next
 
   if schemaOptions.graphability.middleware.preSave
