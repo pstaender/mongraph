@@ -30,7 +30,7 @@
                             |
                             |
                            \ /
-  ({ id: 1, data: { _id: 5169…2, collection: 'people'} })   -&gt; node in Neo4j
+  ({ id: 1, data: { _id: 5169…2, _collection: 'people'} })   -&gt; node in Neo4j
 </code></pre>
 
 <p>Each document has an extra attribute:</p>
@@ -43,7 +43,7 @@
 
 <ul>
 <li><code>_id</code> (id of the corresponding document)</li>
-<li><code>collection</code> (name of the collection of the corresponding document)</li>
+<li><code>_collection</code> (name of the collection of the corresponding document)</li>
 </ul>
 
 <p>Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):</p>
@@ -68,7 +68,7 @@
 <p>To access the corresponding document:</p>
 
 <pre><code class="js">  console.log(node.data._id); // prints the id of the corresponding document
-  console.log(node.data.collection); // prints the collection name of the corresponding 
+  console.log(node.data._collection); // prints the collection name of the corresponding 
   node.getDocument(function(err, correspondingDocument){
     console.log(correspondingDocument); // prints the document object
   });
@@ -196,10 +196,18 @@
 **Slowest** is selecting document with corresponding node
 </code></pre>
 
+<h3 id="changelogs">Changelogs</h3>
+
+<h4 id="0114">0.1.14</h4>
+
+<ul>
+<li>API Change: the collection of the corresponding document will be stored as <code>_collection</code> instead of <code>collection</code> in each node. e.g.: <code>node -&gt; { data: { _id: 5ef6…, _collection: 'people' } }</code>, reason: fits better to naming conventions projectwide</li>
+</ul>
+
 <h3 id="license">License</h3>
 
 <p>Mongraph combines documentstorage-database with graph-database relationships
-Copyright (C) 2013 Philipp Staender <a href="&#x6d;&#97;&#x69;&#x6c;&#116;o:&#x70;&#x68;&#x69;&#x6c;&#x69;&#x70;&#x70;&#46;&#x73;&#x74;&#x61;&#101;&#110;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#99;&#x6f;&#x6d;">&#x70;&#x68;&#x69;&#x6c;&#x69;&#x70;&#x70;&#46;&#x73;&#x74;&#x61;&#101;&#110;&#x64;&#x65;&#x72;&#x40;&#103;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#99;&#x6f;&#x6d;</a></p>
+Copyright (C) 2013 Philipp Staender <a href="&#109;a&#105;&#x6c;&#x74;&#x6f;:&#112;&#x68;&#x69;&#108;&#105;&#112;&#x70;&#46;&#115;&#x74;&#97;&#x65;&#x6e;&#100;&#x65;r&#x40;&#103;&#x6d;&#97;&#105;&#x6c;&#46;c&#x6f;m">&#112;&#x68;&#x69;&#108;&#105;&#112;&#x70;&#46;&#115;&#x74;&#97;&#x65;&#x6e;&#100;&#x65;r&#x40;&#103;&#x6d;&#97;&#105;&#x6c;&#46;c&#x6f;m</a></p>
 
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

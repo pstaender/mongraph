@@ -113,6 +113,25 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 3,
+                "title": "Changelogs",
+                "slug": "changelogs"
+              },
+              "depth": 3,
+              "children": [
+                {
+                  "type": "heading",
+                  "data": {
+                    "level": 4,
+                    "title": "0.1.14",
+                    "slug": "0114"
+                  },
+                  "depth": 4
+                }
+              ]
+            }, {
+              "type": "heading",
+              "data": {
+                "level": 3,
                 "title": "License",
                 "slug": "license"
               },
@@ -215,6 +234,25 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
             "slug": "benchmarks"
           },
           "depth": 3
+        }, {
+          "type": "heading",
+          "data": {
+            "level": 3,
+            "title": "Changelogs",
+            "slug": "changelogs"
+          },
+          "depth": 3,
+          "children": [
+            {
+              "type": "heading",
+              "data": {
+                "level": 4,
+                "title": "0.1.14",
+                "slug": "0114"
+              },
+              "depth": 4
+            }
+          ]
         }, {
           "type": "heading",
           "data": {
@@ -355,33 +393,12 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
                 "slug": "mongraph",
                 "isFileHeader": true
               },
-              "depth": 1,
-              "children": [
-                {
-                  "type": "heading",
-                  "data": {
-                    "level": 2,
-                    "title": "License",
-                    "slug": "license"
-                  },
-                  "depth": 2
-                }
-              ]
+              "depth": 1
             },
             "title": "Mongraph"
           },
           "depth": 2,
-          "outline": [
-            {
-              "type": "heading",
-              "data": {
-                "level": 2,
-                "title": "License",
-                "slug": "license"
-              },
-              "depth": 2
-            }
-          ]
+          "outline": []
         }, {
           "type": "file",
           "data": {
