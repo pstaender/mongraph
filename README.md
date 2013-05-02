@@ -29,7 +29,7 @@ MongoDB is great for a lot of things but a bit weak at relationships. However Ne
 Every document which is created in MongoDB will have a corresponding node in Neo4j:
 
 ```
-             [{ _id: 5169…2, _node_id: 1 }]                 -> document in MongoDB
+             [{ _id: 5169…2, _node_id: 1 }]                  -> document in MongoDB
                            / \
                             |
                             |
@@ -46,10 +46,10 @@ Each node has extra attributes:
   * `_id` (id of the corresponding document)
   * `_collection` (name of the collection of the corresponding document)
 
-Each relationship will store informations about the start- and end-point-document and it's collection (timestamp is optional):
+Each relationship will store informations about the start- and end-point-document and it's collection:
 
 ```
-  (node#a) - { _from: "people:516…2", _to: "locations:516…3", _created_at: 1365849448 } - (node#b)
+  (node#a) - { _from: "people:516…2", _to: "locations:516…3" … } - (node#b)
 ```
 
 ### What can it do?
@@ -62,7 +62,7 @@ To access the corresponding node:
   document.save(function(err, savedDocument){
     savedDocument.log(savedDocument._node_id); // prints the id of the corresponding node
     savedDocument.getNode(function(err, correspondingNode){
-      console.log(correspondingNode); // prints the node object
+      console.log(correspondingNode); // prints the node
     });
   });
 ```
@@ -73,7 +73,7 @@ To access the corresponding document:
   console.log(node.data._id); // prints the id of the corresponding document
   console.log(node.data._collection); // prints the collection name of the corresponding 
   node.getDocument(function(err, correspondingDocument){
-    console.log(correspondingDocument); // prints the document object
+    console.log(correspondingDocument); // prints the document
   });
 ```
 
@@ -115,7 +115,7 @@ You can filter the documents (mongodb) **and** the relationships (neo4j):
     {
       where: {
         document: {
-          // we can query here with the familiar mongodb syntax
+          // we can query with the familiar mongodb query
           title: /^[A-Z]/
         },
         // queries on graph are strings, because they are passed trough the cypher query directly for now
@@ -132,7 +132,7 @@ You can also make your custom graph queries:
   document.queryGraph(
     "START a = node(1), b = node(2) MATCH path = shortestPath( a-[*..5]->b ) RETURN path;", 
     { processPart: 'path' },
-    function(err, path, options) { ... }
+    function(err, path, options) { … }
   );
 ```
 
@@ -142,9 +142,8 @@ To get more informations about made queries (and finally used options) inspect t
   document.incomingRelationships(
     'similar', { debug: true }, function(err, found, options) {
       // prints out finally used options and - if set to `true` - additional debug informations
-      console.log(options);
-      // prints out s.th. like:
-      // { debug: { cypher: [ "START ... MATCH ..." , ...] ...}}
+      console.log(options.debug);
+      // { cypher: [ "START … MATCH …" , …] … }}
     }
   );
 ```
@@ -154,7 +153,7 @@ To get more informations about made queries (and finally used options) inspect t
 By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:
 
 ```
-  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25000001
+  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25004711
 ``` 
 
 ### Works together with
@@ -175,7 +174,7 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 
 ### Benchmarks
 
-`npm run benchmark` or `coffee benchmark/benchmark.coffee` should output s.th. in markdown syntax like:
+`npm run benchmark` should output s.th. like:
 
 ```
 ### CREATING RECORDS
@@ -206,7 +205,7 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 
 #### 0.1.14
 
-* API Change: the collection of the corresponding document will be stored as `_collection` instead of `collection` in each node. e.g.: `node -> { data: { _id: 5ef6…, _collection: 'people' } }`, reason: fits better to naming conventions projectwide
+* **API Change:** the collection of the corresponding document will be stored from now on as `_collection` instead of `collection` in each node. e.g.: `node -> { data: { _id: 5ef6…, _collection: 'people' } }`, reason: continious name conventions in node-, document-, relationship- + path objects
 
 ### License
 
@@ -225,8 +224,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-(until version 0.1.12 mongoose was available under the MIT license)
 
 ### TODO's
 
