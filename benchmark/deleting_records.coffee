@@ -26,6 +26,12 @@ suite.add "deleting mongraph documents", (deferred) ->
     deferred.resolve()
 , defer: true
 
+suite.add "deleting mongraph documents + nodes async", (deferred) ->
+  bar = new Location(value: Math.random())
+  bar.save (err, document) -> bar.removeWithGraph async: false, (err) ->
+    deferred.resolve()
+, defer: true
+
 suite.on "cycle", (event) ->
   console.log "* "+String(event.target)
 

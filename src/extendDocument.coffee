@@ -18,7 +18,7 @@ module.exports = (globalOptions) ->
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtoypeFunctions isnt true
-    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
+    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode', 'removeWithGraph' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
   Document = mongoose.Document
@@ -318,6 +318,19 @@ module.exports = (globalOptions) ->
       """
       options.processPart = 'path'
       from.queryGraph(query, options, cb)
+
+  Document::removeWithGraph = (options, cb) ->
+    # to increase performance of the deleting process, we can choose an async remove
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    return cb(null,null) if not @._node_id > 0 and typeof cb is 'function'
+    # Remove also all relationships
+    options.includeRelationships ?= @schema.get('graphability').relationships.removeAllOutgoing and @schema.get('graphability').relationships.removeAllOutgoing
+    options.async ?= false
+    if options.async
+      @removeNode options, cb
+    else
+      cb(null,null) if typeof cb is 'function'
+      @removeNode options
 
   # TODO: refactor -> split into more methods
 
