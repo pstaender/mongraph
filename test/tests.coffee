@@ -321,22 +321,22 @@ describe "Mongraph", ->
                   node.delete ->
                     return doneNoDeleteHook()
 
-          # doneNoSaveHook   = join.add()
-          # schema   = new mongoose.Schema name: String
-          # schema.set 'graphability', middleware: preSave: false
-          # # explicit overriding middleware
-          # schema.pre 'save', (next) ->
-          #   calledPreSave = true
-          #   next()
+          doneNoSaveHook   = join.add()
+          schema   = new mongoose.Schema name: String
+          schema.set 'graphability', middleware: preSave: false
+          # explicit overriding middleware
+          schema.pre 'save', (next) ->
+            calledPreSave = true
+            next()
           
-          # Drumkit  = mongoose.model "Drumkit",  schema
-          # drums    = new Drumkit name: 'Tama'
-          # drums.save (err, doc) ->
-          #   expect(err).to.be null
-          #   expect(calledPreSave).to.be true
-          #   expect(doc._cached_node).not.be.an 'object'
-          #   drums.remove ->
-          #     doneNoSaveHook()
+          Drumkit  = mongoose.model "Drumkit",  schema
+          drums    = new Drumkit name: 'Tama'
+          drums.save (err, doc) ->
+            expect(err).to.be null
+            expect(calledPreSave).to.be true
+            expect(doc._cached_node).not.be.an 'object'
+            drums.remove ->
+              doneNoSaveHook()
 
           join.when ->
             done()
@@ -567,6 +567,17 @@ describe "Mongraph", ->
                   expect(likes).to.be null
                   frank.remove() if cleanupNodes
                   done()
+
+    describe '#removeWithGraph', ->
+
+      it 'expect to remove document and node async', (done) ->
+        frank  = new Person name: 'frank'
+        frank.removeWithGraph async: true, (err) ->
+          expect(err).to.be null
+          # we set a timeout because we deleted the node async
+          # and don't want to get an error because of nodes count mismatch
+          setTimeout done, 50
+
 
     describe '#shortestPath()', ->
 
