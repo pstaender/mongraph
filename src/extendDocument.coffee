@@ -22,6 +22,9 @@ module.exports = (globalOptions) ->
       'applyGraphRelationships',
       'removeNode',
       'shortestPathTo',
+      'allRelationshipsBetween',
+      'incomingRelationshipsFrom',
+      'outgoingRelationshipsTo',
       'removeRelationships',
       'removeRelationshipsBetween',
       'removeRelationshipsFrom',
@@ -37,7 +40,8 @@ module.exports = (globalOptions) ->
       'getNodeId',
       'findOrCreateCorrespondingNode',
       'findCorrespondingNode',
-      'dataForNode'
+      'dataForNode',
+      'indexInGraph'
     ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
