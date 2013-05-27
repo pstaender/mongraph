@@ -18,7 +18,7 @@
   "scripts": {
     "test": "coffee --map -cb test src && mocha; npm run clean",
     "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",
-    "build": "npm run clean && coffee -cbo lib src",
+    "build": "npm run clean && coffee --map -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",
     "documentation": "docco ./src/*.coffee",
     "doc": "groc ./src/*.coffee README.md",
