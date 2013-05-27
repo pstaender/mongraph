@@ -99,10 +99,14 @@ You can create relationships between documents like you can do in Neo4j with nod
 You can get and remove relationships from documents like you can do in Neo4j:
 
 ```js
-  // get all documents which are pointing to this document with 'view'
-  document.incomingRelationships('similar', _);
+  // get all documents which are pointing via 'view'
+  document.incomingRelationships('view', _);
   // get all documents that are connected with 'view' (bidirectional)
-  document.allRelationships('similar', _);
+  document.allRelationships('view', _);
+  // same between documents
+  document.allRelationshipsBetween(otherDocument, 'view', _);
+  document.incomingRelationshipsFrom(otherDocument, 'view', _);
+  document.outgoingRelationshipsTo(otherDocument, 'view', _);
 ```
 
 You can filter the documents (mongodb) **and** the relationships (neo4j):

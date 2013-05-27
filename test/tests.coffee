@@ -333,6 +333,22 @@ describe "Mongraph", ->
                   node.delete ->
                     return doneNoDeleteHook()
 
+          # doneNoSaveHook   = join.add()
+          # schema   = new mongoose.Schema name: String
+          # schema.set 'graphability', middleware: preSave: false
+          # # explicit overriding middleware
+          # schema.pre 'save', (next) ->
+          #   calledPreSave = true
+          #   next()
+          
+          # Drumkit  = mongoose.model "Drumkit",  schema
+          # drums    = new Drumkit name: 'Tama'
+          # drums.save (err, doc) ->
+          #   expect(err).to.be null
+          #   expect(calledPreSave).to.be true
+          #   expect(doc._cached_node).not.be.an 'object'
+          #   drums.remove ->
+          #     doneNoSaveHook()
 
           join.when ->
             done()
@@ -494,6 +510,49 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'alice', 'bob' )
           done()
 
+      it 'expect to count all matched relationships, nodes or both', (done) ->
+        alice.allRelationships { countDistinct: 'a', debug: true }, (err, res, options) ->
+          count = res[0]
+          expect(count).to.be.above 0
+          alice.allRelationships { count: 'a', debug: true }, (err, res, options) ->
+            expect(res[0]).to.be.above count
+            alice.allRelationships { count: '*' }, (err, resnew, options) ->
+              expect(resnew >= res[0]).to.be true
+              done()
+
+    describe '#allRelationshipsBetween()', ->
+
+      it 'expect to get all relationships between two documents', (done) ->
+        # create bidirectional relationship
+        bob.createRelationshipTo alice, 'knows', { since: 'years' }, ->
+          alice.allRelationshipsBetween bob, 'knows', (err, found) ->
+            expect(found).to.have.length 2
+            from_a = found[0].from.name
+            from_b = found[1].from.name
+            expect(from_a isnt from_b).to.be true
+            done()
+
+      it 'expect to get outgoing relationships between two documents', (done) ->
+        # create bidirectional relationship
+        bob.createRelationshipTo alice, 'knows', { since: 'years' }, ->
+          alice.allRelationshipsBetween bob, 'knows', (err, found) ->
+            alice.outgoingRelationshipsTo bob, 'knows', (err, found) ->
+              expect(found).to.have.length 1
+              bob.outgoingRelationshipsTo alice, 'knows', (err, found) ->
+                expect(found).to.have.length 1
+                done()
+
+      it 'expect to get incoming relationships between two documents', (done) ->
+        bob.createRelationshipTo alice, 'knows', { since: 'years' }, ->
+          alice.allRelationshipsBetween bob, 'knows', (err, found) ->
+            alice.incomingRelationshipsFrom bob, 'knows', (err, found) ->
+              expect(found).to.have.length 1
+              bob.incomingRelationshipsFrom alice, 'knows', (err, found) ->
+                expect(found).to.have.length 1
+                done()
+
+    describe '#outgoingRelationships()', ->
+
       it 'expect to get outgoing relationships+documents from a specific collection', (done) ->
         alice.outgoingRelationships '*', { collection: 'locations' }, (err, relationships, options) ->
           data = {}
@@ -513,15 +572,11 @@ describe "Mongraph", ->
           expect(data).to.only.have.keys( 'Bar', 'Pub' )
           done()
 
-      it 'expect to count all matched relationships, nodes or both', (done) ->
-        alice.allRelationships { countDistinct: 'a', debug: true }, (err, res, options) ->
-          count = res[0]
-          expect(count).to.be.above 0
-          alice.allRelationships { count: 'a', debug: true }, (err, res, options) ->
-            expect(res[0]).to.be.above count
-            alice.allRelationships { count: '*' }, (err, resnew, options) ->
-              expect(resnew >= res[0]).to.be true
-              done()
+      it 'expect to get only outgoing relationships', (done) ->
+        alice.outgoingRelationships 'visits', (err, result) ->
+          expect(err).to.be(null)
+          expect(result).to.have.length 2
+          done()
 
     describe '#incomingRelationships()', ->
 
@@ -536,14 +591,6 @@ describe "Mongraph", ->
         alice.incomingRelationships '*', { collection: 'people' }, (err, relationships) ->
           expect(relationships).to.have.length 1
           expect(relationships[0].from.name).to.be 'zoe'
-          done()
-
-    describe '#outgoingRelationships()', ->
-
-      it 'expect to get only outgoing relationships', (done) ->
-        alice.outgoingRelationships 'visits', (err, result) ->
-          expect(err).to.be(null)
-          expect(result).to.have.length 2
           done()
 
     describe '#removeNode()', ->
@@ -563,6 +610,32 @@ describe "Mongraph", ->
                   expect(likes).to.be null
                   frank.remove() if cleanupNodes
                   done()
+
+    describe '#shortestPath()', ->
+
+      it 'expect to get the shortest path between two documents', (done) ->
+        alice.shortestPathTo zoe, 'knows', (err, path) ->
+          expect(path).to.be.an 'object'
+          expect(err).to.be null
+          expectedPath = [ alice._id, bob._id, zoe._id ]
+          for node, i in path
+            expect(String(node._id)).be.equal String(expectedPath[i])
+          done()
+      
+      it 'expect to get a mongoose document instead of a native mongodb document', (done) ->
+        alice.shortestPathTo zoe, 'knows', (err, path) ->
+          expect(path).to.have.length 3
+          expect(path[0].fullname).to.be.equal 'alice a.'
+          done()
+
+      it 'expect to get a mongoose document with conditions', (done) ->
+        alice.shortestPathTo zoe, 'knows', { where: { document: { name: /o/ } } }, (err, path) ->
+          bob = path[0]
+          zoe = path[1]
+          expect(bob.name).to.be.equal 'bob'
+          expect(zoe.name).to.be.equal 'zoe'
+          expect(path).to.have.length 2
+          done()
 
     describe '#dataForNode()', ->
 
@@ -599,32 +672,6 @@ describe "Mongraph", ->
             expect(node.data['message.content']).to.be undefined
             message.remove ->
               done()
-
-    describe '#shortestPath()', ->
-
-      it 'expect to get the shortest path between two documents', (done) ->
-        alice.shortestPathTo zoe, 'knows', (err, path) ->
-          expect(path).to.be.an 'object'
-          expect(err).to.be null
-          expectedPath = [ alice._id, bob._id, zoe._id ]
-          for node, i in path
-            expect(String(node._id)).be.equal String(expectedPath[i])
-          done()
-      
-      it 'expect to get a mongoose document instead of a native mongodb document', (done) ->
-        alice.shortestPathTo zoe, 'knows', (err, path) ->
-          expect(path).to.have.length 3
-          expect(path[0].fullname).to.be.equal 'alice a.'
-          done()
-
-      it 'expect to get a mongoose document with conditions', (done) ->
-        alice.shortestPathTo zoe, 'knows', { where: { document: { name: /o/ } } }, (err, path) ->
-          bob = path[0]
-          zoe = path[1]
-          expect(bob.name).to.be.equal 'bob'
-          expect(zoe.name).to.be.equal 'zoe'
-          expect(path).to.have.length 2
-          done()
 
     describe '#init() with specific options', ->
 
@@ -704,6 +751,9 @@ describe "Mongraph", ->
             expect(doc).to.be.an 'object'
             expect(String(doc._id)).to.be.equal (String) alice._id
             done()
+
+      
+    
 
       
     

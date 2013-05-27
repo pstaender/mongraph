@@ -18,7 +18,27 @@ module.exports = (globalOptions) ->
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtoypeFunctions isnt true
-    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode', 'dataForNode' ]
+    for functionName in [
+      'applyGraphRelationships',
+      'removeNode',
+      'shortestPathTo',
+      'removeRelationships',
+      'removeRelationshipsBetween',
+      'removeRelationshipsFrom',
+      'removeRelationshipsTo',
+      'outgoingRelationships',
+      'incomingRelationships',
+      'allRelationships',
+      'queryRelationships',
+      'queryGraph',
+      'createRelationshipBetween',
+      'createRelationshipFrom',
+      'createRelationshipTo',
+      'getNodeId',
+      'findOrCreateCorrespondingNode',
+      'findCorrespondingNode',
+      'dataForNode'
+    ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
   Document = mongoose.Document
@@ -238,6 +258,29 @@ module.exports = (globalOptions) ->
     options.direction = 'both'
     options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
+
+  #### Loads in+outgoing relationships between to documents
+  Document::allRelationshipsBetween = (to, typeOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    from = @
+    options.referenceDocumentID ?= from._id
+    options.direction ?= 'both'
+    to.getNode (err, endNode) ->
+      return cb(Error('-> toDocument has no corresponding node',null)) unless endNode
+      options.endNodeId = endNode.id
+      from.queryRelationships(typeOfRelationship, options, cb)
+
+  #### Loads incoming relationships between to documents
+  Document::incomingRelationshipsFrom = (to, typeOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction = 'incoming'
+    @allRelationshipsBetween(to, typeOfRelationship, options, cb)
+
+  #### Loads outgoin relationships between to documents
+  Document::outgoingRelationshipsTo = (to, typeOfRelationship, options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    options.direction = 'outgoing'
+    @allRelationshipsBetween(to, typeOfRelationship, options, cb)
 
   #### Loads incoming relationships
   Document::incomingRelationships = (typeOfRelationship, options, cb) ->
