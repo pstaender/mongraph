@@ -41,7 +41,7 @@ module.exports = (globalOptions) ->
       'findOrCreateCorrespondingNode',
       'findCorrespondingNode',
       'dataForNode',
-      'indexInGraph'
+      'indexGraph'
     ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
@@ -379,7 +379,7 @@ module.exports = (globalOptions) ->
       if index
         indexes.push(path.split('.').join(flattenSeperator)) if definition.options?.graph is true and definition.options?.index is true
       else if definition.options?.graph is true
-        values[path.split('.').join(flattenSeperator)] = self.get(path) if typeof self.get(path) isnt 'undefined'
+        values[path.split('.').join(flattenSeperator)] = self.get(path)
     if index
       indexes 
     else if Object.keys(values).length > 0
@@ -387,21 +387,26 @@ module.exports = (globalOptions) ->
     else
       null
 
-  Document::indexInGraph = (options, cb) ->
+  Document::indexGraph = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
     node = options.node or doc._cached_node
     index = doc.dataForNode(index: true)
-    if node and index.length > 0
-      join = Join.create()
-      collectionName = doc.constructor.collection.name
-      for pathToIndex in index
-        # console.log 'about to index', pathToIndex, collectionName
-        value = doc.get(pathToIndex)
-        value = if typeof value isnt 'undefined' then value else null
-        node.index(collectionName, pathToIndex, value, join.add()) 
-      join.when ->
-        cb(arguments[0], arguments[1]) if typeof cb is 'function'
+
+    return cb(Error('No node attached'), null)     unless node
+    return cb(Error('No field(s) to index'), null) unless index.length > 0
+
+    join = Join.create()
+    collectionName = doc.constructor.collection.name
+    
+    for pathToIndex in index
+      value = doc.get(pathToIndex)
+      # index if have a value
+      node.index(collectionName, pathToIndex, value, join.add()) if typeof value isnt 'undefined'
+
+    join.when ->
+      cb(arguments[0], arguments[1]) if typeof cb is 'function'
+
 
   # TODO: refactor -> split into more methods
 

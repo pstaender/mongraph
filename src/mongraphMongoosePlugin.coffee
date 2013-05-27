@@ -31,10 +31,6 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
   # Extend middleware for graph use
 
-  # if schemaOptions.graphability.middleware.postInit
-  #   schema.post 'init', (doc) ->
-  #     doc.indexInGraph()
-
   if schemaOptions.graphability.middleware.preRemove
     schema.pre 'remove', (errHandler, next) ->
       # skip remove node if no node id is set
@@ -53,12 +49,13 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
         # if we have fields to store in node and they have to be inde
         dataForNode = doc.dataForNode()
         index = doc.dataForNode(index: true)
-        if index?.length > 0
-          doc.indexInGraph { node: node }, ->
-            # TODO: implement exception handler
+        doc.indexGraph { node: node }, -> # TODO: implement exception handler
         if dataForNode
           # console.log dataForNode, node.id
           node.data = _.extend(node.data, dataForNode)
+          for path of dataForNode
+            # delete a key/value if it has an undefined value
+            delete(node.data[path]) if typeof dataForNode[path] is 'undefined'
           node.save ->
             # TODO: implement exception handler
         done(err, node)
