@@ -18,7 +18,7 @@ describe "Mongraph", ->
       cb(err, Number(count?[0]?['count(n)']) || null)
 
   # schemas and data objects
-  Person = Location = alice = bob = charles = dave = elton = frank = zoe = bar = pub = null
+  Person = Location = Message = alice = bob = charles = dave = elton = frank = zoe = bar = pub = null
   # handler for connections
   mongo  = graph = null
   # regex for validating objectid
@@ -37,13 +37,25 @@ describe "Mongraph", ->
     }
     
     # Define model
-    schema = new mongoose.Schema(name: String)
+    personSchema  = new mongoose.Schema(name: String)
+    # for testing nesting and node storage
+    messageSchema = new mongoose.Schema
+      message:
+        title:
+          type: String
+          index: true
+          graph: true
+        content: String
+      from:
+        type: String
+        graph: true
 
     # is used for checking that we are working with the mongoose model and not with native mongodb objects
-    schema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
+    personSchema.virtual('fullname').get -> @name+" "+@name[0]+"." if @name
 
-    Person   = mongoose.model "Person", schema
+    Person   = mongoose.model "Person", personSchema
     Location = mongoose.model "Location", mongoose.Schema(name: String, lon: Number, lat: Number)
+    Message  = mongoose.model "Message", messageSchema
 
     alice   = new Person(name: "alice")
     bob     = new Person(name: "bob")
@@ -321,22 +333,6 @@ describe "Mongraph", ->
                   node.delete ->
                     return doneNoDeleteHook()
 
-          # doneNoSaveHook   = join.add()
-          # schema   = new mongoose.Schema name: String
-          # schema.set 'graphability', middleware: preSave: false
-          # # explicit overriding middleware
-          # schema.pre 'save', (next) ->
-          #   calledPreSave = true
-          #   next()
-          
-          # Drumkit  = mongoose.model "Drumkit",  schema
-          # drums    = new Drumkit name: 'Tama'
-          # drums.save (err, doc) ->
-          #   expect(err).to.be null
-          #   expect(calledPreSave).to.be true
-          #   expect(doc._cached_node).not.be.an 'object'
-          #   drums.remove ->
-          #     doneNoSaveHook()
 
           join.when ->
             done()
@@ -567,6 +563,42 @@ describe "Mongraph", ->
                   expect(likes).to.be null
                   frank.remove() if cleanupNodes
                   done()
+
+    describe '#dataForNode()', ->
+
+      it 'expect to get null by default', (done) ->
+        expect(alice.dataForNode()).to.be null
+        message = new Message()
+        message.message = 'how are you?'
+        message.save ->
+          expect(message.dataForNode()).to.be null
+          message.remove ->
+            done()
+
+      it 'expect to get attributes to index', (done) ->
+        message = new Message()
+        index = message.dataForNode(index: true)
+        expect(index).to.have.length 1
+        expect(index[0]).to.be.equal 'message.title'
+        done()
+
+      it 'expect to get values for storage in node(s)'
+
+      it 'expect to get node with indexed fields from mongoose schema'
+
+      it 'expect to store values from document in corresponding node if defined in mongoose schema', (done) ->
+        message = new Message()
+        message.message.content = 'how are you?'
+        message.message.title = 'hello'
+        message.from = 'me'
+        message.save ->
+          message.getNode (err, node) ->
+            expect(node).to.be.an 'object'
+            expect(node.data['message.title']).to.be.equal message.message.title
+            expect(node.data.from).to.be.equal message.from
+            expect(node.data['message.content']).to.be undefined
+            message.remove ->
+              done()
 
     describe '#shortestPath()', ->
 

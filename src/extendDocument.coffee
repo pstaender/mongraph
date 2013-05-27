@@ -18,7 +18,7 @@ module.exports = (globalOptions) ->
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtoypeFunctions isnt true
-    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode' ]
+    for functionName in [ 'applyGraphRelationships', 'removeNode', 'shortestPathTo', 'removeRelationships', 'removeRelationshipsBetween', 'removeRelationshipsFrom', 'removeRelationshipsTo', 'outgoingRelationships', 'incomingRelationships', 'allRelationships', 'queryRelationships', 'queryGraph', 'createRelationshipBetween', 'createRelationshipFrom', 'createRelationshipTo', 'getNodeId', 'findOrCreateCorrespondingNode', 'findCorrespondingNode', 'dataForNode' ]
       throw new Error("Will not override mongoose::Document.prototype.#{functionName}") unless typeof mongoose.Document::[functionName] is 'undefined'
 
   Document = mongoose.Document
@@ -319,6 +319,43 @@ module.exports = (globalOptions) ->
       options.processPart = 'path'
       from.queryGraph(query, options, cb)
 
+  Document::dataForNode = (options = {}) ->
+    self = @
+    {index} = options
+    index ?= false # returns fields for indexing if set to true; maybe as own method later
+    paths = self.schema.paths
+    flattenSeperator = '.' # make it configurable?!
+    values  = {}
+    indexes = []
+    for path of paths
+      definition = paths[path]
+      if index
+        indexes.push(path.split('.').join(flattenSeperator)) if definition.options?.graph is true and definition.options?.index is true
+      else if definition.options?.graph is true
+        values[path.split('.').join(flattenSeperator)] = self.get(path) if typeof self.get(path) isnt 'undefined'
+    if index
+      indexes 
+    else if Object.keys(values).length > 0
+      values
+    else
+      null
+
+  Document::indexInGraph = (options, cb) ->
+    {options,cb} = processtools.sortOptionsAndCallback(options,cb)
+    doc = @
+    node = options.node or doc._cached_node
+    index = doc.dataForNode(index: true)
+    if node and index.length > 0
+      join = Join.create()
+      collectionName = doc.constructor.collection.name
+      for pathToIndex in index
+        # console.log 'about to index', pathToIndex, collectionName
+        value = doc.get(pathToIndex)
+        value = if typeof value isnt 'undefined' then value else null
+        node.index(collectionName, pathToIndex, value, join.add()) 
+      join.when ->
+        cb(arguments[0], arguments[1]) if typeof cb is 'function'
+
   # TODO: refactor -> split into more methods
 
   Document::applyGraphRelationships = (options, cb) ->
@@ -332,18 +369,6 @@ module.exports = (globalOptions) ->
     sortedRelationships = {}
     typeOfRelationship = '*' # TODO: make optional
     doc = @
-    # Schema
-    # 
-    # typeOfRelationship: [
-    #   from:
-    #     collection: String
-    #     _id: ObjectId
-    #     data: {}
-    #   to:
-    #     collection: String
-    #     _id: ObjectId
-    #     data: {}
-    # ]
 
     _finally = (err, result, options) ->
       doc._relationships = sortedRelationships # attach to current document

@@ -1,3 +1,5 @@
+_ = require('underscore')
+
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
   schemaOptions = schema.options
@@ -13,7 +15,8 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
   # set default values, both hooks
   schemaOptions.graphability.middleware = {} if schemaOptions.graphability.middleware and typeof schemaOptions.graphability.middleware isnt 'object'
   schemaOptions.graphability.middleware.preRemove ?= true
-  schemaOptions.graphability.middleware.preSave   ?= true 
+  schemaOptions.graphability.middleware.preSave   ?= true
+  schemaOptions.graphability.middleware.postInit  ?= true
 
   schemaOptions.graphability.relationships ?= {}
   schemaOptions.graphability.relationships.removeAllOutgoing ?= true
@@ -27,6 +30,10 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
       schema.add _relationships: {}
 
   # Extend middleware for graph use
+
+  # if schemaOptions.graphability.middleware.postInit
+  #   schema.post 'init', (doc) ->
+  #     doc.indexInGraph()
 
   if schemaOptions.graphability.middleware.preRemove
     schema.pre 'remove', (errHandler, next) ->
@@ -42,7 +49,21 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
       # Attach/Save corresponding node
       doc = @
       next()
-      doc.getNode { forceCreation: true }, done
+      doc.getNode { forceCreation: true }, (err, node) ->
+        # if we have fields to store in node and they have to be inde
+        dataForNode = doc.dataForNode()
+        index = doc.dataForNode(index: true)
+        if index?.length > 0
+          doc.indexInGraph { node: node }, ->
+            # TODO: implement exception handler
+        if dataForNode
+          # console.log dataForNode, node.id
+          node.data = _.extend(node.data, dataForNode)
+          node.save ->
+            # TODO: implement exception handler
+        done(err, node)
+
+        
       
 
   
