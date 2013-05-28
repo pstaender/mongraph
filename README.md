@@ -152,6 +152,42 @@ To get more informations about made queries (and finally used options) inspect t
   );
 ```
 
+### Store in mongodb and neo4j simultaneously
+
+Since v0.1.15 you can store defined properties from mongodb documents in the corresponding nodes in neo4j. It might be a matter of opinion whether it's a good idea to store data redundant in two database system, anyway mongraph provides a tool to automate this process.
+
+You need to provide the requested fields in your mongoose schemas with a `graph = true` option. Please note: If the property includes the `index = true` option (used in mongoose to index property in mongodb) this field will be also indexed in the graphdatabase.
+
+Since neo4j nodes store only non nested objects, your object will be flatten; e.g.:
+
+```js
+
+  data = {
+    property: {
+      subproperty: true
+    }
+  };
+  // will become
+  // data['property.subproperty'] = true
+```
+
+```js
+messageSchema = new mongoose.Schema({
+  text: {
+    title: {
+      type: String,
+      graph: true // field / value will be stored in neo4j
+      index: true, // will be an indexed in neo4j as well
+    },
+    content: String
+  },
+  from: {
+    type: String,
+    graph: true  // field / value will be stored in neo4j, but in this case not indexed
+  }
+});
+``` 
+
 ### Your documents + nodes on neo4j
 
 By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:

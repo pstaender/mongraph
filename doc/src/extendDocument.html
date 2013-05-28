@@ -9,7 +9,31 @@
 
   <span class="nv">mongoose = </span><span class="nx">globalOptions</span><span class="p">.</span><span class="nx">mongoose</span>
   <span class="nv">graphdb  = </span><span class="nx">globalOptions</span><span class="p">.</span><span class="nx">neo4j</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>Check that we don't override existing functions</p></div></div><div class="code"><div class="wrapper">  <span class="k">if</span> <span class="nx">globalOptions</span><span class="p">.</span><span class="nx">overrideProtoypeFunctions</span> <span class="o">isnt</span> <span class="kc">true</span>
-    <span class="k">for</span> <span class="nx">functionName</span> <span class="k">in</span> <span class="p">[</span> <span class="s">&#39;applyGraphRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;removeNode&#39;</span><span class="p">,</span> <span class="s">&#39;shortestPathTo&#39;</span><span class="p">,</span> <span class="s">&#39;removeRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;removeRelationshipsBetween&#39;</span><span class="p">,</span> <span class="s">&#39;removeRelationshipsFrom&#39;</span><span class="p">,</span> <span class="s">&#39;removeRelationshipsTo&#39;</span><span class="p">,</span> <span class="s">&#39;outgoingRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;incomingRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;allRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;queryRelationships&#39;</span><span class="p">,</span> <span class="s">&#39;queryGraph&#39;</span><span class="p">,</span> <span class="s">&#39;createRelationshipBetween&#39;</span><span class="p">,</span> <span class="s">&#39;createRelationshipFrom&#39;</span><span class="p">,</span> <span class="s">&#39;createRelationshipTo&#39;</span><span class="p">,</span> <span class="s">&#39;getNodeId&#39;</span><span class="p">,</span> <span class="s">&#39;findOrCreateCorrespondingNode&#39;</span><span class="p">,</span> <span class="s">&#39;findCorrespondingNode&#39;</span> <span class="p">]</span>
+    <span class="k">for</span> <span class="nx">functionName</span> <span class="k">in</span> <span class="p">[</span>
+      <span class="s">&#39;applyGraphRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;removeNode&#39;</span><span class="p">,</span>
+      <span class="s">&#39;shortestPathTo&#39;</span><span class="p">,</span>
+      <span class="s">&#39;allRelationshipsBetween&#39;</span><span class="p">,</span>
+      <span class="s">&#39;incomingRelationshipsFrom&#39;</span><span class="p">,</span>
+      <span class="s">&#39;outgoingRelationshipsTo&#39;</span><span class="p">,</span>
+      <span class="s">&#39;removeRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;removeRelationshipsBetween&#39;</span><span class="p">,</span>
+      <span class="s">&#39;removeRelationshipsFrom&#39;</span><span class="p">,</span>
+      <span class="s">&#39;removeRelationshipsTo&#39;</span><span class="p">,</span>
+      <span class="s">&#39;outgoingRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;incomingRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;allRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;queryRelationships&#39;</span><span class="p">,</span>
+      <span class="s">&#39;queryGraph&#39;</span><span class="p">,</span>
+      <span class="s">&#39;createRelationshipBetween&#39;</span><span class="p">,</span>
+      <span class="s">&#39;createRelationshipFrom&#39;</span><span class="p">,</span>
+      <span class="s">&#39;createRelationshipTo&#39;</span><span class="p">,</span>
+      <span class="s">&#39;getNodeId&#39;</span><span class="p">,</span>
+      <span class="s">&#39;findOrCreateCorrespondingNode&#39;</span><span class="p">,</span>
+      <span class="s">&#39;findCorrespondingNode&#39;</span><span class="p">,</span>
+      <span class="s">&#39;dataForNode&#39;</span><span class="p">,</span>
+      <span class="s">&#39;indexGraph&#39;</span>
+    <span class="p">]</span>
       <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s">&quot;Will not override mongoose::Document.prototype.</span><span class="si">#{</span><span class="nx">functionName</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span> <span class="k">unless</span> <span class="k">typeof</span> <span class="nx">mongoose</span><span class="p">.</span><span class="nx">Document</span><span class="o">::</span><span class="p">[</span><span class="nx">functionName</span><span class="p">]</span> <span class="o">is</span> <span class="s">&#39;undefined&#39;</span>
 
   <span class="nv">Document = </span><span class="nx">mongoose</span><span class="p">.</span><span class="nx">Document</span>
@@ -180,6 +204,29 @@ seperately to get the information wich namespace/collection the mongodb records 
     <span class="nv">options.referenceDocumentID = </span><span class="nx">@_id</span>
     <span class="nx">@queryRelationships</span><span class="p">(</span><span class="nx">typeOfRelationship</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
 
+  <span class="c1">#### Loads in+outgoing relationships between to documents</span>
+  <span class="nv">Document::allRelationshipsBetween = </span><span class="nf">(to, typeOfRelationship, options, cb) -&gt;</span>
+    <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
+    <span class="nv">from = </span><span class="nx">@</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">referenceDocumentID</span> <span class="o">?=</span> <span class="nx">from</span><span class="p">.</span><span class="nx">_id</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">direction</span> <span class="o">?=</span> <span class="s">&#39;both&#39;</span>
+    <span class="nx">to</span><span class="p">.</span><span class="nx">getNode</span> <span class="nf">(err, endNode) -&gt;</span>
+      <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nb">Error</span><span class="p">(</span><span class="s">&#39;-&gt; toDocument has no corresponding node&#39;</span><span class="p">,</span><span class="kc">null</span><span class="p">))</span> <span class="k">unless</span> <span class="nx">endNode</span>
+      <span class="nv">options.endNodeId = </span><span class="nx">endNode</span><span class="p">.</span><span class="nx">id</span>
+      <span class="nx">from</span><span class="p">.</span><span class="nx">queryRelationships</span><span class="p">(</span><span class="nx">typeOfRelationship</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
+
+  <span class="c1">#### Loads incoming relationships between to documents</span>
+  <span class="nv">Document::incomingRelationshipsFrom = </span><span class="nf">(to, typeOfRelationship, options, cb) -&gt;</span>
+    <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
+    <span class="nv">options.direction = </span><span class="s">&#39;incoming&#39;</span>
+    <span class="nx">@allRelationshipsBetween</span><span class="p">(</span><span class="nx">to</span><span class="p">,</span> <span class="nx">typeOfRelationship</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
+
+  <span class="c1">#### Loads outgoin relationships between to documents</span>
+  <span class="nv">Document::outgoingRelationshipsTo = </span><span class="nf">(to, typeOfRelationship, options, cb) -&gt;</span>
+    <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
+    <span class="nv">options.direction = </span><span class="s">&#39;outgoing&#39;</span>
+    <span class="nx">@allRelationshipsBetween</span><span class="p">(</span><span class="nx">to</span><span class="p">,</span> <span class="nx">typeOfRelationship</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
+
   <span class="c1">#### Loads incoming relationships</span>
   <span class="nv">Document::incomingRelationships = </span><span class="nf">(typeOfRelationship, options, cb) -&gt;</span>
     <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
@@ -254,7 +301,46 @@ would it make sense?! not sure...</p></div></div><div class="code"><div class="w
 <span class="s">        RETURN path;</span>
 <span class="s">      &quot;&quot;&quot;</span>
       <span class="nv">options.processPart = </span><span class="s">&#39;path&#39;</span>
-      <span class="nx">from</span><span class="p">.</span><span class="nx">queryGraph</span><span class="p">(</span><span class="nx">query</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>TODO: refactor -> split into more methods</p></div></div><div class="code"><div class="wrapper">  <span class="nv">Document::applyGraphRelationships = </span><span class="nf">(options, cb) -&gt;</span>
+      <span class="nx">from</span><span class="p">.</span><span class="nx">queryGraph</span><span class="p">(</span><span class="nx">query</span><span class="p">,</span> <span class="nx">options</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span>
+
+  <span class="nv">Document::dataForNode = </span><span class="nf">(options = {}) -&gt;</span>
+    <span class="nv">self = </span><span class="nx">@</span>
+    <span class="p">{</span><span class="nx">index</span><span class="p">}</span> <span class="o">=</span> <span class="nx">options</span>
+    <span class="nx">index</span> <span class="o">?=</span> <span class="kc">false</span> <span class="c1"># returns fields for indexing if set to true; maybe as own method later</span>
+    <span class="nv">paths = </span><span class="nx">self</span><span class="p">.</span><span class="nx">schema</span><span class="p">.</span><span class="nx">paths</span>
+    <span class="nv">flattenSeperator = </span><span class="s">&#39;.&#39;</span> <span class="c1"># make it configurable?!</span>
+    <span class="nv">values  = </span><span class="p">{}</span>
+    <span class="nv">indexes = </span><span class="p">[]</span>
+    <span class="k">for</span> <span class="nx">path</span> <span class="k">of</span> <span class="nx">paths</span>
+      <span class="nv">definition = </span><span class="nx">paths</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nx">index</span>
+        <span class="nx">indexes</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="nx">flattenSeperator</span><span class="p">))</span> <span class="k">if</span> <span class="nx">definition</span><span class="p">.</span><span class="nx">options</span><span class="o">?</span><span class="p">.</span><span class="nx">graph</span> <span class="o">is</span> <span class="kc">true</span> <span class="o">and</span> <span class="nx">definition</span><span class="p">.</span><span class="nx">options</span><span class="o">?</span><span class="p">.</span><span class="nx">index</span> <span class="o">is</span> <span class="kc">true</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="nx">definition</span><span class="p">.</span><span class="nx">options</span><span class="o">?</span><span class="p">.</span><span class="nx">graph</span> <span class="o">is</span> <span class="kc">true</span>
+        <span class="nx">values</span><span class="p">[</span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="nx">flattenSeperator</span><span class="p">)]</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">index</span>
+      <span class="nx">indexes</span> 
+    <span class="k">else</span> <span class="k">if</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">values</span><span class="p">).</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="nx">values</span>
+    <span class="k">else</span>
+      <span class="kc">null</span>
+
+  <span class="nv">Document::indexGraph = </span><span class="nf">(options, cb) -&gt;</span>
+    <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
+    <span class="nv">doc = </span><span class="nx">@</span>
+    <span class="nv">node = </span><span class="nx">options</span><span class="p">.</span><span class="nx">node</span> <span class="o">or</span> <span class="nx">doc</span><span class="p">.</span><span class="nx">_cached_node</span>
+    <span class="nv">index = </span><span class="nx">doc</span><span class="p">.</span><span class="nx">dataForNode</span><span class="p">(</span><span class="nv">index: </span><span class="kc">true</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nb">Error</span><span class="p">(</span><span class="s">&#39;No node attached&#39;</span><span class="p">),</span> <span class="kc">null</span><span class="p">)</span>     <span class="k">unless</span> <span class="nx">node</span>
+    <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nb">Error</span><span class="p">(</span><span class="s">&#39;No field(s) to index&#39;</span><span class="p">),</span> <span class="kc">null</span><span class="p">)</span> <span class="k">unless</span> <span class="nx">index</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="nv">join = </span><span class="nx">Join</span><span class="p">.</span><span class="nx">create</span><span class="p">()</span>
+    <span class="nv">collectionName = </span><span class="nx">doc</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">collection</span><span class="p">.</span><span class="nx">name</span>
+    
+    <span class="k">for</span> <span class="nx">pathToIndex</span> <span class="k">in</span> <span class="nx">index</span>
+      <span class="nv">value = </span><span class="nx">doc</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">pathToIndex</span><span class="p">)</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>index if have a value</p></div></div><div class="code"><div class="wrapper">      <span class="nx">node</span><span class="p">.</span><span class="nx">index</span><span class="p">(</span><span class="nx">collectionName</span><span class="p">,</span> <span class="nx">pathToIndex</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">join</span><span class="p">.</span><span class="nx">add</span><span class="p">())</span> <span class="k">if</span> <span class="k">typeof</span> <span class="nx">value</span> <span class="o">isnt</span> <span class="s">&#39;undefined&#39;</span>
+
+    <span class="nx">join</span><span class="p">.</span><span class="nx">when</span> <span class="nf">-&gt;</span>
+      <span class="nx">cb</span><span class="p">(</span><span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="k">typeof</span> <span class="nx">cb</span> <span class="o">is</span> <span class="s">&#39;function&#39;</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>TODO: refactor -> split into more methods</p></div></div><div class="code"><div class="wrapper">  <span class="nv">Document::applyGraphRelationships = </span><span class="nf">(options, cb) -&gt;</span>
     <span class="p">{</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">}</span> <span class="o">=</span> <span class="nx">processtools</span><span class="p">.</span><span class="nx">sortOptionsAndCallback</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span><span class="nx">cb</span><span class="p">)</span>
     <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nb">Error</span><span class="p">(</span><span class="s">&#39;No graphability enabled&#39;</span><span class="p">),</span> <span class="kc">null</span><span class="p">)</span> <span class="k">unless</span> <span class="nx">@schema</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s">&#39;graphability&#39;</span><span class="p">)</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>relationships will be stored permanently on this document
 not for productive usage
@@ -262,18 +348,9 @@ not for productive usage
 to store informations redundant (CAP/syncing)</p></div></div><div class="code"><div class="wrapper">    <span class="nx">options</span><span class="p">.</span><span class="nx">doPersist</span> <span class="o">?=</span> <span class="kc">false</span>
     <span class="nv">sortedRelationships = </span><span class="p">{}</span>
     <span class="nv">typeOfRelationship = </span><span class="s">&#39;*&#39;</span> <span class="c1"># TODO: make optional</span>
-    <span class="nv">doc = </span><span class="nx">@</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>Schema</p>
+    <span class="nv">doc = </span><span class="nx">@</span>
 
-<p>typeOfRelationship: [
-  from:
-    collection: String
-    _id: ObjectId
-    data: {}
-  to:
-    collection: String
-    _id: ObjectId
-    data: {}
-]</p></div></div><div class="code"><div class="wrapper">    <span class="nv">_finally = </span><span class="nf">(err, result, options) -&gt;</span>
+    <span class="nv">_finally = </span><span class="nf">(err, result, options) -&gt;</span>
       <span class="nv">doc._relationships = </span><span class="nx">sortedRelationships</span> <span class="c1"># attach to current document</span>
       <span class="nx">cb</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">.</span><span class="nx">_relationships</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="k">if</span> <span class="k">typeof</span> <span class="nx">cb</span> <span class="o">is</span> <span class="s">&#39;function&#39;</span>
 
