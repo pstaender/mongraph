@@ -1,16 +1,18 @@
-# TODO: make tests mor independent: beforeEach -> delete all relations
-
 # source map support for coffee-script ~1.6.1
 require('source-map-support').install()
 
-expect     = require('expect.js')
-mongoose   = require('mongoose')
-neo4j      = require('neo4j')
-mongraph   = require("../src/mongraph")
+neo4jURL     = 'http://localhost:7474'
+mongodbURL   = 'mongodb://localhost/mongraph_test'
+
+expect       = require('expect.js')
+mongoose     = require('mongoose')
+neo4j        = require('neo4j')
+mongraph     = require("../src/mongraph")
 # remove all test-created nodes on every test run
 cleanupNodes = true
 nodesCount   = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
 Join         = require('join')
+request      = require('request')
 
 describe "Mongraph", ->
 
@@ -27,8 +29,8 @@ describe "Mongraph", ->
   before (done) ->
 
     # Establish connections to mongodb + neo4j
-    graph = new neo4j.GraphDatabase('http://localhost:7474')
-    mongoose.connect("mongodb://localhost/mongraph_test")
+    graph = new neo4j.GraphDatabase(neo4jURL)
+    mongoose.connect(mongodbURL)
 
     # initialize mongraph
     mongraph.init {
@@ -48,6 +50,10 @@ describe "Mongraph", ->
         content: String
       from:
         type: String
+        graph: true
+      my_id:
+        type: Number
+        index: true
         graph: true
 
     # is used for checking that we are working with the mongoose model and not with native mongodb objects
@@ -649,15 +655,16 @@ describe "Mongraph", ->
           expect(data).to.have.property('from')
           expect(data['from']).to.be undefined
           expect(data['message.title']).to.be undefined
-          expect(Object.keys(data)).to.have.length 2
+          expect(Object.keys(data)).to.have.length 3
           message.remove ->
             done()
 
       it 'expect to get attributes for index', (done) ->
         message = new Message()
         index = message.dataForNode(index: true)
-        expect(index).to.have.length 1
+        expect(index).to.have.length 2
         expect(index[0]).to.be.equal 'message.title'
+        expect(index[1]).to.be.equal 'my_id'
         done()
 
       it 'expect to delete values in document and on node', (done) ->
@@ -674,18 +681,23 @@ describe "Mongraph", ->
                   done()
 
       it 'expect to get node with indexed fields from mongoose schema', (done) ->
-        # TODO: make it works :/
-        # currently no results from graph.getIndexedNode at all... maybe a bug in neo4j lib?!
-        value = String(new Date().getTime())
-        graph.getIndexedNode 'messages', 'message.title', value, (err, found) ->
-          expect(err).to.be null
+        # TODO: use `graph.getIndexedNode` from neo4j module instead of manual request
+        # Problem: currently getting no results from graph.getIndexedNode at all... maybe a bug in neo4j lib?!
+        # first check didn't bring any progress... GraphDatabase._coffee @getIndexedNodes, response.body.map
+        value = new Date().getTime() # generate 'unique' value for this test
+        graph.getIndexedNode 'messages', 'my', value, (err) ->
           message = new Message()
-          message.message.title = value
+          message.message.title = '_'+value+'_'
+          message.my_id = value
           message.save ->
-            graph.getIndexedNode 'messages', 'message.title', value, (err, found) ->
-              # expect(found).to.be.an 'object'
-              message.remove ->
-                done()
+            graph.getIndexedNode 'messages', 'my_id', value, (err, found) ->
+              request.get neo4jURL+"/db/data/index/node/messages/my_id/#{value}", (err, res) ->
+                expect(err).to.be null
+                expect(res.body).to.be.a 'string'
+                result = JSON.parse(res.body)
+                expect(result[0].data['my_id']).to.be.equal value
+                message.remove ->
+                  done()
 
       it 'expect to store values from document in corresponding node if defined in mongoose schema', (done) ->
         message = new Message()

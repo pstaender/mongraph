@@ -37,7 +37,8 @@
     "mongoskin": "latest",
     "benchmark": "~1.0",
     "microtime": "*",
-    "futures": "~2.3.1"
+    "futures": "~2.3.1",
+    "request": "~2.21.0"
   },
   "dependencies": {
     "underscore.string": "~2.3",
