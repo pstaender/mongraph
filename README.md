@@ -183,7 +183,7 @@ messageSchema = new mongoose.Schema({
   },
   from: {
     type: String,
-    graph: true  // field / value will be stored in neo4j, but in this case not indexed
+    graph: true  // field / value will be stored in neo4j, but not be indexed
   }
 });
 ``` 
@@ -196,14 +196,14 @@ By default all corresponding nodes are created indexed with the collection-name 
   http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25004711
 ``` 
 
-### Works together with
+### Requirements
 
-#### following databases
+#### Databases:
 
   * MongoDB (~2)
-  * Neo4j (~1.8)
+  * Neo4j (1.8)
 
-#### following npm modules
+#### NPM modules:
 
   * mongoose ORM <https://github.com/learnboost/mongoose> `npm install mongoose`
   * Neo4j REST API client by thingdom <https://github.com/thingdom/node-neo4j> `npm install neo4j`
@@ -265,9 +265,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-### TODO's
+### Known issues and upcoming features
 
-  * avoid loading all documents if we have a specific mongodb query
-  * benchmarks
-  * more examples, documentation and better readme
-  * more effective queries on mongodb
+  * process tools should avoid loading all documents on specific mongodb queries -> more effective queries
+  * replace of neo4j module with a neo4j mapper to have a more mongoose-like experience throughout
+  * using document `_id` as primary key in neo4j as well (in other words, drop support for `node_id` / `id`)
+  * using labels-feature for nodes (neo4j 2.0+) instead of `_collection` property
+  * dump and restore of relationships
+  * current release is only tested on neo4j 1.8, other version might have problems (please run tests to be sure); since the next release will only support neo4j 2.0+ I can't make any effort to support minor versions
+  * real-life benchmarks 
