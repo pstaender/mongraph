@@ -15,6 +15,7 @@ module.exports = (globalOptions) ->
 
   mongoose = globalOptions.mongoose
   graphdb  = globalOptions.neo4j
+  Node     = graphdb.Node
 
   # Check that we don't override existing functions
   if globalOptions.overrideProtoypeFunctions isnt true
@@ -38,7 +39,7 @@ module.exports = (globalOptions) ->
       'createRelationshipFrom',
       'createRelationshipTo',
       'getNodeId',
-      'findOrCreateCorrespondingNode',
+      'getNode',
       'findCorrespondingNode',
       'dataForNode',
       'indexGraph'
@@ -47,82 +48,31 @@ module.exports = (globalOptions) ->
 
   Document = mongoose.Document
 
-  processtools.setMongoose mongoose
+  processtools.setMongoose(mongoose)
 
-  node = graphdb.createNode()
-
-  #### Allows extended querying to the graphdb and loads found Documents
-  #### (is used by many methods for loading incoming + outgoing relationships) 
-  # @param typeOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
-  # @param options = {}
-  # (first value is default)
-  # * direction (both|incoming|outgoing)
-  # * action: (RETURN|DELETE|...) (all other actions wich can be used in cypher)
-  # * processPart: (relationship|path|...) (depends on the result you expect from our query)
-  # * loadDocuments: (true|false)
-  # * endNode: '' (can be a node object or a nodeID)
-  Document::queryRelationships = (typeOfRelationship, options, cb) ->
-    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
-    # REMOVED: options can be a cypher query as string
-    # options = { query: options } if typeof options is 'string'
-    {typeOfRelationship,options, cb} = processtools.sortTypeOfRelationshipAndOptionsAndCallback(typeOfRelationship,options,cb)
-    # build query from options
-    typeOfRelationship          ?= '*'
-    typeOfRelationship           = if /^[*:]{1}$/.test(typeOfRelationship) or not typeOfRelationship then '' else ':'+typeOfRelationship
-    options.direction           ?= 'both'
-    options.action              ?= 'RETURN'
-    if options.count or options.countDistinct
-      options.count              = 'distinct '+options.countDistinct if options.countDistinct
-      options.returnStatement    = 'count('+options.count+')' 
-      options.processPart        = 'count('+options.count+')' 
-    options.processPart         ?= 'r'
-    options.returnStatement     ?= options.processPart   
-    options.referenceDocumentID ?= @_id 
-    # endNode can be string or node object
-    options.endNodeId           ?= ''
-    options.endNodeId            = endNode.id if typeof endNode is 'object'
-    options.debug = {} if options.debug is true
+  # create a corresponding node, not for direct use
+  Document::_createCorrespondingNode = (cb) ->
     doc = @
-    id = processtools.getObjectIDAsString(doc)
-    @getNode (nodeErr, fromNode) ->
-      # if no node is found
-      return cb(nodeErr, null, options) if nodeErr
-
-      
-
-      cypher = """
-                START a = node(%(id)s)%(endNodeId)s
-                MATCH (a)%(incoming)s[r%(relation)s]%(outgoing)s(b)
-                %(whereRelationship)s
-                %(action)s %(returnStatement)s;
-               """
-      
-
-
-      cypher = _s.sprintf cypher,
-        id:                 fromNode.id
-        incoming:           if options.direction is 'incoming' then '<-' else '-'
-        outgoing:           if options.direction is 'outgoing' then '->' else '-'
-        relation:           typeOfRelationship
-        action:             options.action.toUpperCase()
-        returnStatement:    options.returnStatement
-        whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
-        endNodeId:          if options.endNodeId then ", b = node(#{options.endNodeId})" else ''
-      options.startNode     ?= fromNode.id # for logging
-      
-
-      # take query from options and discard build query
-      cypher = options.cypher if options.cypher
-      options.debug?.cypher ?= []
-      options.debug?.cypher?.push(cypher)
-      if options.dontExecute
-        cb(Error("`options.dontExecute` is set to true..."), null, options)
-      else
-        _queryGraphDB(cypher, options, cb)
+    id = doc._id.toString()
+    # create a new one
+    collectionName = doc.constructor.collection.name
+    node = new Node {
+      _id: id,
+      _collection: collectionName
+    }
+    # use schema name for label
+    node.label = processtools.getModelNameByCollectionName(collectionName)
+    # autoindex on _id
+    node.fields.indexes._id = true
+    node.save (err, node) ->
+      return cb(err, node) if err
+      # adding legacacy index, too (collection/_id/)
+      node.addIndex collectionName, '_id', id, (err) ->
+        cb(err, node)
 
 
-  #### Loads the equivalent node to this Document 
-  Document::findCorrespondingNode = (options, cb) ->
+  #### Find or create the equivalent node to this Document 
+  Document::getNode = (options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     doc = @
@@ -131,84 +81,30 @@ module.exports = (globalOptions) ->
     # so you can ensure to get the latest existing node directly from db
     options.forceReload ?= false
 
-    return cb(null, doc._cached_node, options) if globalOptions.cacheAttachedNodes and doc._cached_node and options.forceReload isnt true
+    # return attached node
+    return cb(null, doc._node, options) if doc._node and options.forceReload isnt true
 
     collectionName = doc.constructor.collection.name
     id = processtools.getObjectIDAsString(doc)
 
-    # Difference between doCreateIfNotExists and forceCreation:
-    #
-    #   * doCreateIfNotExists -> persist the node if no corresponding node exists
-    #   * forceCreation -> forces to create a node
-    #
-    # @forceCreation: this is needed because mongoose marks each document as
-    # doc.new = true (which is checked to prevent accidently creating orphaned nodes).
-    # As long it is 'init' doc.new stays true, but we need that to complete the 'pre' 'save' hook
-    # (see -> mongraphMongoosePlugin) 
+    # Find equivalent node in graphdb    
 
-    options.doCreateIfNotExists ?= false
-    options.forceCreation ?= false
+    return cb(Error("Can't load a corresponding Node to an unpersisted document"), null) if doc.isNew and options.forceCreation isnt true
 
-    # Find equivalent node in graphdb
-    
-    # TODO: cache existing node
-    
-    _processNode = (node, doc, cb) ->
-      # store document data also als in node -> untested and not recommend
-      # known issue: neo4j doesn't store deeper levels of nested objects...
-      if globalOptions.storeDocumentInGraphDatabase
-        node.data = doc.toObject(globalOptions.storeDocumentInGraphDatabase)
-        node.save()
-      # store node_id on document
-      doc._node_id = node.id
-      doc._cached_node = node if globalOptions.cacheAttachedNodes
-      cb(null, node, options)
-
-    if doc.isNew is true and options.forceCreation isnt true
-      cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null, options)
-    else if doc._node_id
-      graphdb.getNodeById doc._node_id, (errFound, node) ->
-        if errFound
-          cb(errFound, node, options)
+    #   # we can't find a corresponding node, if the doc is not persisted in the 
+    #   cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null, options)
+    Node::findByIndex collectionName, '_id', doc._id, (err, foundNode) ->
+      if err
+        cb(err, foundNode, options)
+      else
+        unless foundNode
+          doc._createCorrespondingNode(cb)
         else
-          _processNode(node,doc,cb)
-    else if options.doCreateIfNotExists or options.forceCreation is true
-      # create a new one
-      node = graphdb.createNode( _id: id, _collection: collectionName )
-      node.save (errSave, node) ->
-        if errSave
-          cb(errSave, node, options)
-        else
-          # do index for better queries outside mongraph
-          # e.g. people/_id/5178fb1b48c7a4ae24000001
-          node.index(collectionName, '_id', id)
-          _processNode(node, doc, cb) 
-    else
-      cb(null, null, options)
-
-  #### Finds or create equivalent Node to this Document
-  Document::findOrCreateCorrespondingNode = (options, cb) ->
-    {options, cb} = processtools.sortOptionsAndCallback(options,cb)
-    @findCorrespondingNode(options, cb)
-  
-  # Recommend to use this method instead of `findOrCreateCorrespondingNode`
-  # shortcutmethod -> findOrCreateCorrespondingNode
-  Document::getNode = Document::findOrCreateCorrespondingNode
-
-
-  #### Finds and returns id of corresponding Node
-  # Faster, because it returns directly from document if stored (see -> mongraphMongoosePlugin)
-  Document::getNodeId = (cb) ->
-    if @_node_id
-      cb(null, @_node_id)
-    else
-      @getNode (err, node) ->
-        cb(err, node?.id || null)
+          cb(null, foundNode, options)
 
   #### Creates a relationship from this Document to a given document
   Document::createRelationshipTo = (doc, typeOfRelationship, attributes = {}, cb) ->
     {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
-    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # assign cb + attribute arguments
     if typeof attributes is 'function'
       cb = attributes
@@ -226,8 +122,8 @@ module.exports = (globalOptions) ->
       attributes._created_at ?= Math.floor(Date.now()/1000) 
 
     # Get both nodes: "from" node (this document) and "to" node (given as 1st argument)
-    @findOrCreateCorrespondingNode (fromErr, from) ->
-      doc.findOrCreateCorrespondingNode (toErr, to) ->
+    @getNode (fromErr, from) ->
+      doc.getNode (toErr, to) ->
         if from and to
           from.createRelationshipTo to, typeOfRelationship, attributes, (err, result) ->
             return cb(err, result) if err
@@ -325,34 +221,23 @@ module.exports = (globalOptions) ->
   #### Removes incoming and outgoing relationships to all Documents (useful bevor deleting a node/document)
   Document::removeRelationships = (typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    options.direction = 'both'
-    options.action = 'DELETE'
-    @queryRelationships typeOfRelationship, options, cb
+    this.getNode (err, node) ->
+      if err then cb(err) else node.removeRelationships(cb)
 
   #### Delete node including all incoming and outgoing relationships
   Document::removeNode = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
-    # we don't distinguish between incoming and outgoing relationships here
-    # would it make sense?! not sure...
-    options.includeRelationships ?= true
     doc = @
     doc.getNode (err, node) ->
-      # if we have an error or no node found (as expected)
-      if err or typeof node isnt 'object'
-        return cb(err || new Error('No corresponding node found to document #'+doc._id), node) if typeof cb is 'function'
+      if err
+        cb(err, node) if err
       else
-        cypher = """
-          START n = node(#{node.id})
-          MATCH n-[r?]-()
-          DELETE n#{if options.includeRelationships then ', r' else ''}
-        """
-        _queryGraphDB(cypher, options, cb)
+        doc._node = null
+        node.removeWithRelationships(cb)
 
   #### Returns the shortest path between this and another document
   Document::shortestPathTo = (doc, typeOfRelationship = '', options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     from = @
     to = doc
     from.getNode (errFrom, fromNode) -> to.getNode (errTo, toNode) ->
@@ -387,22 +272,25 @@ module.exports = (globalOptions) ->
     else
       null
 
+  # ## Index Node
+  # We taking the fields to index from mongoose schema (must set with graph: true)
+  # TODO: replace with autoindex
   Document::indexGraph = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
-    node = options.node or doc._cached_node
+    node = options.node or doc._node
     index = doc.dataForNode(index: true)
 
-    return cb(Error('No node attached'), null)     unless node
-    return cb(Error('No field(s) to index'), null) unless index.length > 0
+    return cb(Error('No node given/attached'), null) unless node
+    return cb(null, null) unless index.length > 0 # if we have nothing to index
 
     join = Join.create()
     collectionName = doc.constructor.collection.name
-    
+
     for pathToIndex in index
       value = doc.get(pathToIndex)
       # index if have a value
-      node.index(collectionName, pathToIndex, value, join.add()) if typeof value isnt 'undefined'
+      node.addIndex(collectionName, pathToIndex, value, join.add()) if typeof value isnt 'undefined'
 
     join.when ->
       cb(arguments[0], arguments[1]) if typeof cb is 'function'
@@ -412,7 +300,6 @@ module.exports = (globalOptions) ->
 
   Document::applyGraphRelationships = (options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
-    return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
     # relationships will be stored permanently on this document
     # not for productive usage
     # -> it's deactivated by default, because I'm not sure that it'a good idea
@@ -480,33 +367,17 @@ module.exports = (globalOptions) ->
     # TODO: nice or bad feature?! ... maybe too much magic 
     if not options.processPart? and cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)?[2]
       options.processPart = cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)[2]
-    graphdb.query cypher, null, (errGraph, map) ->
+    Node.neo4jrestful.query cypher, null, (errGraph, map) ->
       # Adding cypher query for better debugging
       options.debug = {} if options.debug is true
       options.debug?.cypher ?= []
       options.debug?.cypher?.push(cypher)
       options.loadDocuments ?= true # load documents from mongodb
       # TODO: would it be helpful to have also the `native` result?
-      # options.graphResult = map
-      if options.loadDocuments and map?.length > 0
-        # extract from result
-        data = for result in map
-          if options.processPart
-            result[options.processPart]
-          else
-            # return first first property otherwise
-            result[Object.keys(result)[0]]
-        if processtools.constructorNameOf(data[0]) is 'Relationship'
-          processtools.populateResultWithDocuments data, options, cb
-        # TODO: distinguish between 'Path', 'Node' etc ...
-        else
-          processtools.populateResultWithDocuments data, options, cb
-      else
-        # prevent `undefined is not a function` if no cb is given
-        cb(errGraph, map || null, options) if typeof cb is 'function'
+      # TODO: processtools
+      cb(errGraph, map)
 
-  #### Cache node
-  if globalOptions.cacheAttachedNodes
-    Document::_cached_node = null
+  Document::_node = null
+
   
 

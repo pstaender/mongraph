@@ -44,7 +44,8 @@
     "underscore.string": "~2.3",
     "underscore": "~1.4",
     "join": "~2.3",
-    "bson": "~0.1.8"
+    "bson": "~0.1.8",
+    "neo4jmapper": "*"
   },
   "licenses" : {
     "type" : "GPL"

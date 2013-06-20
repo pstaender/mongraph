@@ -2,43 +2,26 @@ _ = require('underscore')
 
 module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
 
-  schemaOptions = schema.options
-
   # skip if is set explizit to false
-  return null if schemaOptions.graphability is false
+  return null if schema.options.graphability is false
 
-  # set default option values for graphability
-  schemaOptions.graphability            ?= {}
-  schemaOptions.graphability.schema     ?= true
-  schemaOptions.graphability.middleware ?= true
-    
-  # set default values, both hooks
-  schemaOptions.graphability.middleware = {} if schemaOptions.graphability.middleware and typeof schemaOptions.graphability.middleware isnt 'object'
-  schemaOptions.graphability.middleware.preRemove ?= true
-  schemaOptions.graphability.middleware.preSave   ?= true
-  schemaOptions.graphability.middleware.postInit  ?= true
+  schemaOptions =
+    graphability:
+      middleware:
+        preRemove: true
+        preSave: true
+        postInit: true
 
-  schemaOptions.graphability.relationships ?= {}
-  schemaOptions.graphability.relationships.removeAllOutgoing ?= true
-  schemaOptions.graphability.relationships.removeAllIncoming ?= true
 
-  if schemaOptions.graphability.schema
-    # node id of corresponding node
-    schema.add
-      _node_id: Number
-      # add an empty object as placeholder for relationships, use is optional
-      schema.add _relationships: {}
+  _.extend(schemaOptions.graphability, options.graphability) if options.graphability
+
 
   # Extend middleware for graph use
 
+
   if schemaOptions.graphability.middleware.preRemove
     schema.pre 'remove', (errHandler, next) ->
-      # skip remove node if no node id is set
-      return next(null) unless @._node_id > 0
-      # Remove also all relationships
-      opts =
-        includeRelationships: schemaOptions.graphability.relationships.removeAllOutgoing and schemaOptions.graphability.relationships.removeAllOutgoing
-      @removeNode opts, next
+      @removeNode next
 
   if schemaOptions.graphability.middleware.preSave
     schema.pre 'save', true, (next, done) ->
@@ -49,20 +32,18 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
         # if we have fields to store in node and they have to be inde
         dataForNode = doc.dataForNode()
         index = doc.dataForNode(index: true)
-        doc.indexGraph { node: node }, -> # TODO: implement exception handler
-        if dataForNode
-          # console.log dataForNode, node.id
-          node.data = _.extend(node.data, dataForNode)
-          for path of dataForNode
-            # delete a key/value if it has an undefined value
-            delete(node.data[path]) if typeof dataForNode[path] is 'undefined'
-          node.save ->
-            # TODO: implement exception handler
-        done(err, node)
+        doc._node = node
+        doc.indexGraph (err) ->
+          # TODO: implement exception handler for index errors
+          if dataForNode
+            # console.log dataForNode, node.id
+            node.data = _.extend(node.data, dataForNode)
+            for path of dataForNode
+              # delete a key/value if it has an undefined value
+              delete(node.data[path]) if typeof dataForNode[path] is 'undefined'
+            node.save(done)
+          else
+            done(err, node)
 
-        
-      
-
-  
 
 
