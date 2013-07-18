@@ -6,6 +6,7 @@ Mongraph [mɔ̃ ˈɡrɑːf]
 Mongraph combines documentstorage database with graph-database relationships by creating a corresponding node for each document.
 
 **Experimental. API may change.**
+**Currently it's only tested against Neo4j v1.8 and Neo4j v2 M3**
 
 ### Installation
 
@@ -273,4 +274,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * using labels-feature for nodes (neo4j 2.0+) instead of `_collection` property
   * dump and restore of relationships
   * current release is only tested on neo4j 1.8, other version might have problems (please run tests to be sure); since the next release will only support neo4j 2.0+ I can't make any effort to support minor versions
-  * real-life benchmarks 
+  * real-life benchmarks
+  * Currently mongraph **is not fully working with Neo4j v1.9**, but works with Neo4j v1.8 and 2.0 (M3)
