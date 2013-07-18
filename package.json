@@ -16,7 +16,7 @@
     "graphdatabase"
   ],
   "scripts": {
-    "test": "coffee --map -cb test src && mocha; npm run clean",
+    "test": "./node_modules/coffee-script/bin/coffee --map -cb test src && mocha; npm run clean",
     "clean": "find src test -name '*.js' -delete -o -name '*.map' -delete",
     "build": "npm run clean && coffee --map -cbo lib src",
     "example": "coffee -cbo lib src && node examples/example.js",
@@ -38,7 +38,8 @@
     "benchmark": "~1.0",
     "microtime": "*",
     "futures": "~2.3.1",
-    "request": "~2.21.0"
+    "request": "~2.21.0",
+    "coffee-script": "~1.6.3"
   },
   "dependencies": {
     "underscore.string": "~2.3",
@@ -46,7 +47,7 @@
     "join": "~2.3",
     "bson": "~0.1.8"
   },
-  "licenses" : {
-    "type" : "GPL"
+  "licenses": {
+    "type": "GPL"
   }
 }
