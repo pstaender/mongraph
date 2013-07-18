@@ -32,7 +32,7 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
   # Extend middleware for graph use
 
   if schemaOptions.graphability.middleware.preRemove
-    schema.pre 'remove', (errHandler, next) ->
+    schema.pre 'remove', (next) ->
       # skip remove node if no node id is set
       return next(null) unless @._node_id > 0
       # Remove also all relationships
