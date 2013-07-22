@@ -9,7 +9,7 @@ mongoose     = require('mongoose')
 neo4j        = require('neo4j')
 mongraph     = require("../src/mongraph")
 # remove all test-created nodes on every test run
-cleanupNodes = true
+cleanupNodes = false
 nodesCount   = nodesCountBefore = 0 # used to check that we have deleted all created nodes during tests
 Join         = require('join')
 request      = require('request')

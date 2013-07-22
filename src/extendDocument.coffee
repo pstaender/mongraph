@@ -181,8 +181,8 @@ module.exports = (globalOptions) ->
         else
           # do index for better queries outside mongraph
           # e.g. people/_id/5178fb1b48c7a4ae24000001
-          node.index(collectionName, '_id', id)
-          _processNode(node, doc, cb) 
+          node.index collectionName, '_id', id, ->
+            _processNode(node, doc, cb) 
     else
       cb(null, null, options)
 
