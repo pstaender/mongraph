@@ -48,7 +48,14 @@ describe "Mongraph", ->
         expect(err.message).to.be.equal "Can't get a node of an unpersisted document"
         alice.save (err) ->
           expect(err).to.be null
-          done()
+          alice.getNode (err, node) ->
+            expect(err).to.be null
+            expect(node.id).to.be.above -1
+            expect(node.label).to.be.equal 'Person'
+            expect(node.data._id).to.be.a 'string'
+            expect(node.data._collection).to.be.equal 'people'
+            # console.log node.toObject()
+            done()
     #       alice.getNode (err, node) ->
     #         expect(err).to.be null
     #         id = node.id
