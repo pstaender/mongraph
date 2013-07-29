@@ -4,7 +4,8 @@
 
 <p>Mongraph combines documentstorage database with graph-database relationships by creating a corresponding node for each document.</p>
 
-<p><strong>Experimental. API may change.</strong></p>
+<p><strong>Experimental. API may change.</strong>
+<strong>Currently it's only tested against Neo4j v1.8 and Neo4j v2 M3</strong></p>
 
 <h3 id="installation">Installation</h3>
 
@@ -144,6 +145,39 @@
   );
 </code></pre>
 
+<h3 id="store-in-mongodb-and-neo4j-simultaneously">Store in mongodb and neo4j simultaneously</h3>
+
+<p>Since v0.1.15 you can store defined properties from mongodb documents in the corresponding nodes in neo4j. It might be a matter of opinion whether it's a good idea to store data redundant in two database system, anyway mongraph provides a tool to automate this process.</p>
+
+<p>You need to provide the requested fields in your mongoose schemas with a <code>graph = true</code> option. Please note: If the property includes the <code>index = true</code> option (used in mongoose to index property in mongodb) this field will be also indexed in the graphdatabase.</p>
+
+<p>Since neo4j nodes store only non nested objects, your object will be flatten; e.g.:</p>
+
+<pre><code class="js">  data = {
+    property: {
+      subproperty: true
+    }
+  };
+  // will become
+  // data['property.subproperty'] = true
+</code></pre>
+
+<pre><code class="js">messageSchema = new mongoose.Schema({
+  text: {
+    title: {
+      type: String,
+      graph: true // field / value will be stored in neo4j
+      index: true, // will be an indexed in neo4j as well
+    },
+    content: String
+  },
+  from: {
+    type: String,
+    graph: true  // field / value will be stored in neo4j, but not be indexed
+  }
+});
+</code></pre>
+
 <h3 id="your-documents--nodes-on-neo4j">Your documents + nodes on neo4j</h3>
 
 <p>By default all corresponding nodes are created indexed with the collection-name and the _id, so that you can easily access them through neo4j, e.g.:</p>
@@ -151,16 +185,16 @@
 <pre><code>  http://localhost:7474/db/data/index/node/people/_id/5178fc1f6955993a25004711
 </code></pre>
 
-<h3 id="works-together-with">Works together with</h3>
+<h3 id="requirements">Requirements</h3>
 
-<h4 id="following-databases">following databases</h4>
+<h4 id="databases">Databases:</h4>
 
 <ul>
 <li>MongoDB (~2)</li>
-<li>Neo4j (~1.8)</li>
+<li>Neo4j (1.8)</li>
 </ul>
 
-<h4 id="following-npm-modules">following npm modules</h4>
+<h4 id="npm-modules">NPM modules:</h4>
 
 <ul>
 <li>mongoose ORM <a href="https://github.com/learnboost/mongoose">https://github.com/learnboost/mongoose</a> <code>npm install mongoose</code></li>
@@ -210,7 +244,7 @@
 <h3 id="license">License</h3>
 
 <p>Mongraph combines documentstorage-database with graph-database relationships
-Copyright (C) 2013 Philipp Staender <a href="&#109;&#x61;&#105;&#108;&#116;&#111;:&#112;&#x68;&#105;l&#105;&#x70;&#x70;&#x2e;&#x73;&#x74;&#x61;&#x65;&#x6e;&#x64;&#101;&#x72;&#x40;g&#x6d;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">&#112;&#x68;&#105;l&#105;&#x70;&#x70;&#x2e;&#x73;&#x74;&#x61;&#x65;&#x6e;&#x64;&#101;&#x72;&#x40;g&#x6d;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a></p>
+Copyright (C) 2013 Philipp Staender <a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;:&#x70;h&#x69;l&#x69;&#112;&#112;&#x2e;&#x73;&#x74;&#x61;&#101;n&#100;&#101;&#x72;&#x40;&#x67;&#109;a&#105;&#x6c;&#x2e;&#x63;o&#x6d;">&#x70;h&#x69;l&#x69;&#112;&#112;&#x2e;&#x73;&#x74;&#x61;&#101;n&#100;&#101;&#x72;&#x40;&#x67;&#109;a&#105;&#x6c;&#x2e;&#x63;o&#x6d;</a></p>
 
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -225,11 +259,15 @@ GNU General Public License for more details.</p>
 <p>You should have received a copy of the GNU General Public License
 along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
 
-<h3 id="todos">TODO's</h3>
+<h3 id="known-issues-and-upcoming-features">Known issues and upcoming features</h3>
 
 <ul>
-<li>avoid loading all documents if we have a specific mongodb query</li>
-<li>benchmarks</li>
-<li>more examples, documentation and better readme</li>
-<li>more effective queries on mongodb</li>
+<li>process tools should avoid loading all documents on specific mongodb queries -> more effective queries</li>
+<li>replace of neo4j module with a neo4j mapper to have a more mongoose-like experience throughout</li>
+<li>using document <code>_id</code> as primary key in neo4j as well (in other words, drop support for <code>node_id</code> / <code>id</code>)</li>
+<li>using labels-feature for nodes (neo4j 2.0+) instead of <code>_collection</code> property</li>
+<li>dump and restore of relationships</li>
+<li>current release is only tested on neo4j 1.8, other version might have problems (please run tests to be sure); since the next release will only support neo4j 2.0+ I can't make any effort to support minor versions</li>
+<li>real-life benchmarks</li>
+<li>Currently mongraph <strong>is not fully working with Neo4j v1.9</strong>, but works with Neo4j v1.8 and 2.0 (M3)</li>
 </ul></div></div></div></div></body></html>

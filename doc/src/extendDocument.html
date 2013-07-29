@@ -137,8 +137,8 @@ known issue: neo4j doesn't store deeper levels of nested objects...</p></div></d
         <span class="k">if</span> <span class="nx">errSave</span>
           <span class="nx">cb</span><span class="p">(</span><span class="nx">errSave</span><span class="p">,</span> <span class="nx">node</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
         <span class="k">else</span></div></div></div><div class="segment"><div class="comments"><div class="wrapper"><p>do index for better queries outside mongraph
-e.g. people/_id/5178fb1b48c7a4ae24000001</p></div></div><div class="code"><div class="wrapper">          <span class="nx">node</span><span class="p">.</span><span class="nx">index</span><span class="p">(</span><span class="nx">collectionName</span><span class="p">,</span> <span class="s">&#39;_id&#39;</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
-          <span class="nx">_processNode</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">doc</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span> 
+e.g. people/_id/5178fb1b48c7a4ae24000001</p></div></div><div class="code"><div class="wrapper">          <span class="nx">node</span><span class="p">.</span><span class="nx">index</span> <span class="nx">collectionName</span><span class="p">,</span> <span class="s">&#39;_id&#39;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nf">-&gt;</span>
+            <span class="nx">_processNode</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">doc</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span> 
     <span class="k">else</span>
       <span class="nx">cb</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
 

@@ -22,7 +22,8 @@
     "example": "coffee -cbo lib src && node examples/example.js",
     "documentation": "docco ./src/*.coffee",
     "doc": "groc ./src/*.coffee README.md",
-    "benchmark": "coffee benchmark/benchmark.coffee"
+    "benchmark": "coffee benchmark/benchmark.coffee",
+    "prepare": "npm run test && npm run build && npm run documentation && npm run doc"
   },
   "devDependencies": {
     "mocha": "~1.9",

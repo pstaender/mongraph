@@ -62,6 +62,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 3,
+                "title": "Store in mongodb and neo4j simultaneously",
+                "slug": "store-in-mongodb-and-neo4j-simultaneously"
+              },
+              "depth": 3
+            }, {
+              "type": "heading",
+              "data": {
+                "level": 3,
                 "title": "Your documents + nodes on neo4j",
                 "slug": "your-documents--nodes-on-neo4j"
               },
@@ -70,8 +78,8 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 3,
-                "title": "Works together with",
-                "slug": "works-together-with"
+                "title": "Requirements",
+                "slug": "requirements"
               },
               "depth": 3,
               "children": [
@@ -79,16 +87,16 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
                   "type": "heading",
                   "data": {
                     "level": 4,
-                    "title": "following databases",
-                    "slug": "following-databases"
+                    "title": "Databases:",
+                    "slug": "databases"
                   },
                   "depth": 4
                 }, {
                   "type": "heading",
                   "data": {
                     "level": 4,
-                    "title": "following npm modules",
-                    "slug": "following-npm-modules"
+                    "title": "NPM modules:",
+                    "slug": "npm-modules"
                   },
                   "depth": 4
                 }
@@ -140,8 +148,8 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 3,
-                "title": "TODO's",
-                "slug": "todos"
+                "title": "Known issues and upcoming features",
+                "slug": "known-issues-and-upcoming-features"
               },
               "depth": 3
             }
@@ -187,6 +195,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "type": "heading",
           "data": {
             "level": 3,
+            "title": "Store in mongodb and neo4j simultaneously",
+            "slug": "store-in-mongodb-and-neo4j-simultaneously"
+          },
+          "depth": 3
+        }, {
+          "type": "heading",
+          "data": {
+            "level": 3,
             "title": "Your documents + nodes on neo4j",
             "slug": "your-documents--nodes-on-neo4j"
           },
@@ -195,8 +211,8 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "type": "heading",
           "data": {
             "level": 3,
-            "title": "Works together with",
-            "slug": "works-together-with"
+            "title": "Requirements",
+            "slug": "requirements"
           },
           "depth": 3,
           "children": [
@@ -204,16 +220,16 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
               "type": "heading",
               "data": {
                 "level": 4,
-                "title": "following databases",
-                "slug": "following-databases"
+                "title": "Databases:",
+                "slug": "databases"
               },
               "depth": 4
             }, {
               "type": "heading",
               "data": {
                 "level": 4,
-                "title": "following npm modules",
-                "slug": "following-npm-modules"
+                "title": "NPM modules:",
+                "slug": "npm-modules"
               },
               "depth": 4
             }
@@ -265,8 +281,8 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "type": "heading",
           "data": {
             "level": 3,
-            "title": "TODO's",
-            "slug": "todos"
+            "title": "Known issues and upcoming features",
+            "slug": "known-issues-and-upcoming-features"
           },
           "depth": 3
         }
@@ -503,7 +519,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   setTableOfContentsActive = function(active) {
     var html$;
-
     html$ = $('html');
     if (active) {
       nav$.addClass('active');
@@ -522,7 +537,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   focusCurrentNode = function() {
     var currentNodeBottom, currentNodeTop;
-
     currentNodeTop = currentNode$.offset().top - toc$.children(':visible').first().offset().top;
     currentNodeBottom = currentNodeTop + currentNode$.children('.label').height();
     if (currentNodeTop < toc$.scrollTop()) {
@@ -535,7 +549,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   setCurrentNodeExpanded = function(expanded) {
     var parents$;
-
     if (expanded) {
       currentNode$.addClass('expanded');
     } else {
@@ -560,7 +573,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   selectNodeByDocumentPath = function(documentPath, headerSlug) {
     var link, urlChunks, _i, _len, _ref;
-
     if (headerSlug == null) {
       headerSlug = null;
     }
@@ -583,7 +595,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   moveCurrentNode = function(up) {
     var i, newIndex, node, visibleNodes$, _i, _len;
-
     visibleNodes$ = toc$.find('li:visible:not(.filtered)');
     newIndex = 0;
     for (i = _i = 0, _len = visibleNodes$.length; _i < _len; i = ++_i) {
@@ -604,7 +615,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   visitCurrentNode = function() {
     var labelLink$;
-
     labelLink$ = currentNode$.children('a.label');
     if (labelLink$.length > 0) {
       return window.location = labelLink$.attr('href');
@@ -617,7 +627,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   appendSearchNode = function(node$) {
     var text$;
-
     text$ = node$.find('> .label .text');
     return searchableNodes.push([text$.text().toLowerCase(), node$, text$]);
   };
@@ -626,7 +635,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   searchNodes = function(queryString) {
     var c, filtered, matched, matcher, nodeInfo, p, _i, _j, _k, _len, _len1, _len2, _results;
-
     queryString = queryString.toLowerCase().replace(/\s+/, '');
     if (queryString === currentQuery) {
       return;
@@ -637,7 +645,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
     }
     matcher = new RegExp(((function() {
       var _i, _len, _results;
-
       _results = [];
       for (_i = 0, _len = queryString.length; _i < _len; _i++) {
         c = queryString[_i];
@@ -673,7 +680,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
       highlightMatch(nodeInfo[2], queryString);
       _results.push((function() {
         var _l, _len3, _ref, _results1;
-
         _ref = nodeInfo[1].parents('li');
         _results1 = [];
         for (_l = 0, _len3 = _ref.length; _l < _len3; _l++) {
@@ -688,7 +694,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   clearFilter = function() {
     var nodeInfo, _i, _len, _results;
-
     nav$.removeClass('searching');
     currentQuery = '';
     _results = [];
@@ -702,7 +707,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   highlightMatch = function(text$, queryString) {
     var char, foundIndex, furthestIndex, lowerText, markedText, nodeText, _i, _len;
-
     nodeText = text$.text();
     lowerText = nodeText.toLowerCase();
     markedText = '';
@@ -724,7 +728,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   buildNav = function(metaInfo) {
     var node, sourceURL, _i, _len;
-
     nav$ = $("<nav>\n  <ul class=\"tools\">\n    <li class=\"toggle\">Table of Contents</li>\n    <li class=\"search\">\n      <input id=\"search\" type=\"search\" autocomplete=\"off\"/>\n    </li>\n  </ul>\n  <ol class=\"toc\"/>\n  </div>\n</nav>").appendTo($('body'));
     toc$ = nav$.find('.toc');
     if (metaInfo.githubURL) {
@@ -744,7 +747,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   buildTOCNode = function(node, metaInfo) {
     var c, children$, discloser$, label$, node$, _i, _len, _ref, _ref1, _ref2;
-
     node$ = $("<li class=\"" + node.type + "\"/>");
     switch (node.type) {
       case 'file':
@@ -783,7 +785,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
   $(function() {
     var lastMousedownTimestamp, metaInfo, search$, toggle$;
-
     metaInfo = {
       relativeRoot: $('meta[name="groc-relative-root"]').attr('content'),
       githubURL: $('meta[name="groc-github-url"]').attr('content'),
