@@ -1,12 +1,12 @@
 # source map support for coffee-script ~1.6.1
 require('source-map-support').install()
 
-neo4jURL     = 'http://localhost:7420'
+neo4jURL     = 'http://localhost:7474'
 mongodbURL   = 'mongodb://localhost/mongraph_test'
 
 expect               = require('expect.js')
 mongoose             = require('mongoose')
-mongraph             = require("../lib/mongraph")
+mongraph             = require("../src/mongraph")
 {Graph,Node,client}  = require('neo4jmapper')(neo4jURL)
 graph                = new Graph(neo4jURL)
 

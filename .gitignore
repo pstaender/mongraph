@@ -1,6 +1,5 @@
 node_modules/*
 *.map
-src/*.js
 test/*.js
 docs/*
 lib/*
