@@ -2,7 +2,9 @@ language: node_js
 node_js:
   - "0.11"
   - "0.10"
+  - "0.9"
   - "0.8"
 services:
   - mongodb
-  - neo4j
+before_install:
+  sudo make installneo4j

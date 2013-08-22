@@ -29,8 +29,8 @@ describe "Mongraph", ->
       mongoose: mongoose
       neo4j: neo4jURL
     }
-    personSchema.enableGraphability();
-    Person = mongoose.model("Person", personSchema)
+    # personSchema.enableGraphability();
+    # Person = mongoose.model("Person", personSchema)
     done()
 
   describe 'init', ->
@@ -42,7 +42,7 @@ describe "Mongraph", ->
 
   describe 'document with corresponding node', ->
 
-    it 'expect to create a document with a corresponding node', (done) ->
+    it.skip 'expect to create a document with a corresponding node', (done) ->
       alice = new Person name: 'Alice'
       alice.getNode (err) ->
         expect(err.message).to.be.equal "Can't get a node of an unpersisted document"
@@ -56,6 +56,10 @@ describe "Mongraph", ->
             expect(node.data._collection).to.be.equal 'people'
             # console.log node.toObject()
             done()
+
+
+
+
     #       alice.getNode (err, node) ->
     #         expect(err).to.be null
     #         id = node.id
