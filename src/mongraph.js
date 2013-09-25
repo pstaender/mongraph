@@ -43,10 +43,14 @@ module.exports = exports = {
 
     options.processtools = require('./processtools').init(options.mongoose);
 
-    // extend Document(s) with Node/GraphDB interoperability
-    var Document = require('./extendDocument')(options).Document;
     // extend Node(s) with DocumentDB interoperability
     var DocumentNode = require('./extendNode')(options).DocumentNode;
+
+    options.DocumentNode = DocumentNode;
+
+    // extend Document(s) with Node/GraphDB interoperability
+    var Document = require('./extendDocument')(options).Document;
+    
 
     // Load plugin and extend schemas with middleware
     // -> http://mongoosejs.com/docs/plugins.html

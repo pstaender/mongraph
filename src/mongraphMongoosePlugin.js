@@ -14,7 +14,12 @@ module.exports = exports = mongraphMongoosePlugin = function(schema, mongraphOpt
   // Extend middleware for graph use
   if (schemaOptions.graphability.middleware.preRemove)
     schema.pre('remove', function(errHandler, next) {
-      this.removeNode(next);
+      this.getNode(function(err, node){
+        if (node)
+          node.remove(next);
+        else
+          next(err, node);
+      });
     });
 
   if (schemaOptions.graphability.middleware.preSave)
