@@ -52,7 +52,7 @@ module.exports = (globalOptions) ->
   node = graphdb.createNode()
 
   #### Allows extended querying to the graphdb and loads found Documents
-  #### (is used by many methods for loading incoming + outgoing relationships) 
+  #### (is used by many methods for loading incoming + outgoing relationships)
   # @param typeOfRelationship = '*' (any relationship you can query with cypher, e.g. KNOW, LOVE|KNOW ...)
   # @param options = {}
   # (first value is default)
@@ -73,11 +73,11 @@ module.exports = (globalOptions) ->
     options.action              ?= 'RETURN'
     if options.count or options.countDistinct
       options.count              = 'distinct '+options.countDistinct if options.countDistinct
-      options.returnStatement    = 'count('+options.count+')' 
-      options.processPart        = 'count('+options.count+')' 
+      options.returnStatement    = 'count('+options.count+')'
+      options.processPart        = 'count('+options.count+')'
     options.processPart         ?= 'r'
-    options.returnStatement     ?= options.processPart   
-    options.referenceDocumentID ?= @_id 
+    options.returnStatement     ?= options.processPart
+    options.referenceDocumentID ?= @_id
     # endNode can be string or node object
     options.endNodeId           ?= ''
     options.endNodeId            = endNode.id if typeof endNode is 'object'
@@ -88,7 +88,7 @@ module.exports = (globalOptions) ->
       # if no node is found
       return cb(nodeErr, null, options) if nodeErr
 
-      
+
 
       cypher = """
                 START a = node(%(id)s)%(endNodeId)s
@@ -96,7 +96,7 @@ module.exports = (globalOptions) ->
                 %(whereRelationship)s
                 %(action)s %(returnStatement)s;
                """
-      
+
 
 
       cypher = _s.sprintf cypher,
@@ -109,7 +109,7 @@ module.exports = (globalOptions) ->
         whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
         endNodeId:          if options.endNodeId then ", b = node(#{options.endNodeId})" else ''
       options.startNode     ?= fromNode.id # for logging
-      
+
 
       # take query from options and discard build query
       cypher = options.cypher if options.cypher
@@ -121,7 +121,7 @@ module.exports = (globalOptions) ->
         _queryGraphDB(cypher, options, cb)
 
 
-  #### Loads the equivalent node to this Document 
+  #### Loads the equivalent node to this Document
   Document::findCorrespondingNode = (options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     return cb(Error('No graphability enabled'), null) unless @schema.get('graphability')
@@ -144,15 +144,15 @@ module.exports = (globalOptions) ->
     # @forceCreation: this is needed because mongoose marks each document as
     # doc.new = true (which is checked to prevent accidently creating orphaned nodes).
     # As long it is 'init' doc.new stays true, but we need that to complete the 'pre' 'save' hook
-    # (see -> mongraphMongoosePlugin) 
+    # (see -> mongraphMongoosePlugin)
 
     options.doCreateIfNotExists ?= false
     options.forceCreation ?= false
 
     # Find equivalent node in graphdb
-    
+
     # TODO: cache existing node
-    
+
     _processNode = (node, doc, cb) ->
       # store document data also als in node -> untested and not recommend
       # known issue: neo4j doesn't store deeper levels of nested objects...
@@ -182,7 +182,7 @@ module.exports = (globalOptions) ->
           # do index for better queries outside mongraph
           # e.g. people/_id/5178fb1b48c7a4ae24000001
           node.index collectionName, '_id', id, ->
-            _processNode(node, doc, cb) 
+            _processNode(node, doc, cb)
     else
       cb(null, null, options)
 
@@ -190,7 +190,7 @@ module.exports = (globalOptions) ->
   Document::findOrCreateCorrespondingNode = (options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     @findCorrespondingNode(options, cb)
-  
+
   # Recommend to use this method instead of `findOrCreateCorrespondingNode`
   # shortcutmethod -> findOrCreateCorrespondingNode
   Document::getNode = Document::findOrCreateCorrespondingNode
@@ -221,9 +221,9 @@ module.exports = (globalOptions) ->
     if globalOptions.relationships.storeIDsInRelationship
       attributes._to   ?= doc.constructor.collection.name + ":" + (String) doc._id
       attributes._from ?= @constructor.collection.name    + ":" + (String) @._id
-     
+
     if globalOptions.relationships.storeTimestamp
-      attributes._created_at ?= Math.floor(Date.now()/1000) 
+      attributes._created_at ?= Math.floor(Date.now()/1000)
 
     # Get both nodes: "from" node (this document) and "to" node (given as 1st argument)
     @findOrCreateCorrespondingNode (fromErr, from) ->
@@ -234,7 +234,7 @@ module.exports = (globalOptions) ->
             processtools.populateResultWithDocuments result, {}, cb
         else
           cb(fromErr or toErr, null) if typeof cb is 'function'
-  
+
   #### Creates an incoming relationship from a given Documents to this Document
   Document::createRelationshipFrom = (doc, typeOfRelationship, attributes = {}, cb) ->
     {attributes,cb} = processtools.sortAttributesAndCallback(attributes,cb)
@@ -250,7 +250,7 @@ module.exports = (globalOptions) ->
     from.createRelationshipTo to, typeOfRelationship, (err1) -> to.createRelationshipTo from, typeOfRelationship, (err2) ->
       cb(err1 || err2, null)
 
-  #### Query the graphdb with cypher, current Document is not relevant for the query 
+  #### Query the graphdb with cypher, current Document is not relevant for the query
   Document::queryGraph = (chypherQuery, options, cb) ->
     {options, cb} = processtools.sortOptionsAndCallback(options,cb)
     doc = @
@@ -299,7 +299,7 @@ module.exports = (globalOptions) ->
     options.direction = 'outgoing'
     options.referenceDocumentID = @_id
     @queryRelationships(typeOfRelationship, options, cb)
-  
+
   #### Remove outgoing relationships to a specific Document
   Document::removeRelationshipsTo = (doc, typeOfRelationship, options, cb) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
@@ -344,7 +344,7 @@ module.exports = (globalOptions) ->
       else
         cypher = """
           START n = node(#{node.id})
-          MATCH n-[r?]-()
+          OPTIONAL MATCH n-[r]-()
           DELETE n#{if options.includeRelationships then ', r' else ''}
         """
         _queryGraphDB(cypher, options, cb)
@@ -359,7 +359,7 @@ module.exports = (globalOptions) ->
       return cb(new Error("Problem(s) getting from and/or to node")) if errFrom or errTo or not fromNode or not toNode
       levelDeepness = 15
       query = """
-        START a = node(#{fromNode.id}), b = node(#{toNode.id}) 
+        START a = node(#{fromNode.id}), b = node(#{toNode.id})
         MATCH path = shortestPath( a-[#{if typeOfRelationship then ':'+typeOfRelationship else ''}*..#{levelDeepness}]->b )
         RETURN path;
       """
@@ -381,7 +381,7 @@ module.exports = (globalOptions) ->
       else if definition.options?.graph is true
         values[path.split('.').join(flattenSeperator)] = self.get(path)
     if index
-      indexes 
+      indexes
     else if Object.keys(values).length > 0
       values
     else
@@ -398,7 +398,7 @@ module.exports = (globalOptions) ->
 
     join = Join.create()
     collectionName = doc.constructor.collection.name
-    
+
     for pathToIndex in index
       value = doc.get(pathToIndex)
       # index if have a value
@@ -431,7 +431,7 @@ module.exports = (globalOptions) ->
       doc.allRelationships typeOfRelationship, options, (err, relationships, options) ->
         return _finally(err, relationships, options) if err
         if relationships?.length > 0
-          # add relationships to object, sorted by type (see above for schema)          
+          # add relationships to object, sorted by type (see above for schema)
           for relation in relationships
             if relation._data?.type
               data = {}
@@ -463,7 +463,7 @@ module.exports = (globalOptions) ->
             # remove/unset attribute
             update[key] = 1 # used to get mongodb query like -> { $unset: { key: 1 } }
             conditions = { $unset: update }
-            
+
             if options.doPersist
               options?.debug?.where.push(conditions)
               doc.update conditions, (err, result) -> _finally(err,result,options)
@@ -477,7 +477,7 @@ module.exports = (globalOptions) ->
     {options,cb} = processtools.sortOptionsAndCallback(options,cb)
     # TODO: type check
     # try to "guess" process part from last statement
-    # TODO: nice or bad feature?! ... maybe too much magic 
+    # TODO: nice or bad feature?! ... maybe too much magic
     if not options.processPart? and cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)?[2]
       options.processPart = cypher.trim().match(/(RETURN|DELETE)\s+([a-zA-Z]+?)[;]*$/)[2]
     graphdb.query cypher, null, (errGraph, map) ->
@@ -508,5 +508,3 @@ module.exports = (globalOptions) ->
   #### Cache node
   if globalOptions.cacheAttachedNodes
     Document::_cached_node = null
-  
-
