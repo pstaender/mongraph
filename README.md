@@ -202,7 +202,7 @@ By default all corresponding nodes are created indexed with the collection-name 
 #### Databases:
 
   * MongoDB (~2)
-  * Neo4j (1.8)
+  * Neo4j (~2)
 
 #### NPM modules:
 
@@ -275,4 +275,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   * dump and restore of relationships
   * current release is only tested on neo4j 1.8, other version might have problems (please run tests to be sure); since the next release will only support neo4j 2.0+ I can't make any effort to support minor versions
   * real-life benchmarks
-  * Currently mongraph **is not fully working with Neo4j v1.9**, but works with Neo4j v1.8 and 2.0 (M3)
+  * Currently mongraph works with Neo4j 2.0+
