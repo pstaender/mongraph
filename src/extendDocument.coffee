@@ -79,7 +79,6 @@ module.exports = (globalOptions) ->
     options.returnStatement     ?= options.processPart
     options.referenceDocumentID ?= @_id
     # endNode can be string or node object
-    options.endNodeId           ?= ''
     options.endNodeId            = endNode.id if typeof endNode is 'object'
     options.debug = {} if options.debug is true
     doc = @
@@ -107,7 +106,7 @@ module.exports = (globalOptions) ->
         action:             options.action.toUpperCase()
         returnStatement:    options.returnStatement
         whereRelationship:  if options.where?.relationship then "WHERE #{options.where.relationship}" else ''
-        endNodeId:          if options.endNodeId then ", b = node(#{options.endNodeId})" else ''
+        endNodeId:          if options.endNodeId? then ", b = node(#{options.endNodeId})" else ''
       options.startNode     ?= fromNode.id # for logging
 
 
@@ -166,7 +165,7 @@ module.exports = (globalOptions) ->
 
     if doc.isNew is true and options.forceCreation isnt true
       cb(new Error("Can't return a 'corresponding' node of an unpersisted document"), null, options)
-    else if doc._node_id
+    else if doc._node_id?
       graphdb.getNodeById doc._node_id, (errFound, node) ->
         if errFound
           cb(errFound, node, options)
@@ -199,7 +198,7 @@ module.exports = (globalOptions) ->
   #### Finds and returns id of corresponding Node
   # Faster, because it returns directly from document if stored (see -> mongraphMongoosePlugin)
   Document::getNodeId = (cb) ->
-    if @_node_id
+    if @_node_id?
       cb(null, @_node_id)
     else
       @getNode (err, node) ->
