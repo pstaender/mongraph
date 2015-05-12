@@ -5,3 +5,6 @@ test/*.js
 test/*.map
 docs/*
 npm-debug.log
+.DS_Store
+.git
+.git/*

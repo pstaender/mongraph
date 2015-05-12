@@ -270,7 +270,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   * [Marian C Moldovan](https://github.com/beeva-marianmoldovan)
   * [Robert Klep](https://github.com/robertklep)
-  * [https://github.com/beeva-joaquinnavarro](https://github.com/beeva-joaquinnavarro)
 
 ### Known issues and upcoming features
 
