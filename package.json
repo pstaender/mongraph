@@ -1,7 +1,7 @@
 {
   "name": "mongraph",
   "description": "Mongraph combines documentstorage-database with graph-database relationships",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "author": "Philipp Staender <philipp.staender@gmail.com>",
   "homepage": "https://github.com/pstaender/mongraph/",
   "main": "./lib/mongraph",

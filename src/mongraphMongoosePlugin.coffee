@@ -34,7 +34,7 @@ module.exports = exports = mongraphMongoosePlugin = (schema, options = {}) ->
   if schemaOptions.graphability.middleware.preRemove
     schema.pre 'remove', (next) ->
       # skip remove node if no node id is set
-      return next(null) unless @._node_id > 0
+      return next(null) unless @._node_id >= 0
       # Remove also all relationships
       opts =
         includeRelationships: schemaOptions.graphability.relationships.removeAllOutgoing and schemaOptions.graphability.relationships.removeAllOutgoing
