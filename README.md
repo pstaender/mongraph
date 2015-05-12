@@ -251,7 +251,7 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 ### License
 
 Mongraph combines documentstorage-database with graph-database relationships
-Copyright (C) 2013 Philipp Staender <philipp.staender@gmail.com>
+Copyright (C) 2013-2015 Philipp Staender <philipp.staender@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -265,6 +265,12 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+### Contributors
+
+  * [Marian C Moldovan](https://github.com/beeva-marianmoldovan)
+  * [Robert Klep](https://github.com/robertklep)
+  * [https://github.com/beeva-joaquinnavarro](https://github.com/beeva-joaquinnavarro)
 
 ### Known issues and upcoming features
 
