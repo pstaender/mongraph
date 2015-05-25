@@ -257,26 +257,12 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 ### Tests
 
 Tested successfully against mongodb 2.6.x and Neo4J v2.0.x and v2.1.x.
-Not ready for Neo4j v2.2 since the [neo4j module](https://github.com/thingdom/node-neo4j) is still in development.
+Not ready for Neo4j v2.2 since the [neo4j module](https://github.com/thingdom/node-neo4j) for the latest Neo4j version is still under development.
 Older Neo4j version than 2.x are not supported anymore.
 
 ### License
 
-Mongraph combines documentstorage-database with graph-database relationships
-Copyright (C) 2013-2015 Philipp Staender <philipp.staender@gmail.com>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+See [License file](https://github.com/pstaender/mongraph/blob/master/LICENSE).
 
 ### Contributors
 
