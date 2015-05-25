@@ -1,6 +1,7 @@
-args = require('minimist')(process.argv.slice(2))
+args         = require('minimist')(process.argv.slice(2))
 
-neo4jPort    = (Number) args.globals || 7474
+neo4jPort    = args.globals || 7474
+neo4jPort    = (Number) neo4jPort
 
 neo4jURL     = "http://localhost:#{neo4jPort}"
 mongodbURL   = 'mongodb://localhost/mongraph_test'
@@ -16,7 +17,6 @@ Join         = require('join')
 request      = require('request')
 
 describe "Mongraph", ->
-
 
   _countNodes = (cb) -> graph.query "START n=node(*) RETURN count(n)", (err, count) ->
       cb(err, Number(count?[0]?['count(n)']) || null)

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-path = "#{Dir.home}/neo4jtest/"
+path = "#{Dir.home}/neo4j_instances/"
 
 `mkdir -p #{path}`
 
