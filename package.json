@@ -20,7 +20,7 @@
     "build": "node_modules/coffee-script/bin/coffee --map -cbo lib src",
     "example": "npm run build && node examples/example.js",
     "documentation": "node_modules/docco/bin/docco ./src/*.coffee",
-    "prepare": "npm test && npm run build && npm run documentation && npm run doc"
+    "prepare": "npm test && npm run build && npm run documentation"
   },
   "devDependencies": {
     "mocha": "~2.2.5",
