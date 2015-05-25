@@ -6,7 +6,7 @@ Mongraph [mɔ̃ ˈɡrɑːf]
 Mongraph combines documentstorage database with graph-database relationships by creating a corresponding node for each document.
 
 **Experimental. API may change.**
-**Currently it's only tested against Neo4j v1.8 and Neo4j v2 M3**
+**Currently it's only tested against Neo4j v2.0 and Neo4j v2.1**
 
 ### Installation
 
