@@ -11,7 +11,7 @@ versions = {
 }
 
 if ARGV[0] == 'start'
-  puts "starting…"
+  puts "starting..."
   versions.each { |version, port|
     puts "#{version} on port #{port}"
     altPort = port+1
@@ -24,7 +24,7 @@ if ARGV[0] == 'start'
     `#{path}/#{version}/bin/neo4j start`
   }
 elsif ARGV[0] == 'stop'
-  puts "stoppping…"
+  puts "stoppping..."
   versions.each { |version, port|
     puts "#{version} on port #{port}"
     `#{path}/#{version}/bin/neo4j stop`
