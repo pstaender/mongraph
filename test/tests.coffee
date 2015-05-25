@@ -1,7 +1,8 @@
-# source map support for coffee-script ~1.6.1
-require('source-map-support').install()
+args = require('minimist')(process.argv.slice(2))
 
-neo4jURL     = 'http://localhost:7474'
+neo4jPort    = (Number) args.globals || 7474
+
+neo4jURL     = "http://localhost:#{neo4jPort}"
 mongodbURL   = 'mongodb://localhost/mongraph_test'
 
 expect       = require('expect.js')
@@ -16,6 +17,7 @@ request      = require('request')
 
 describe "Mongraph", ->
 
+
   _countNodes = (cb) -> graph.query "START n=node(*) RETURN count(n)", (err, count) ->
       cb(err, Number(count?[0]?['count(n)']) || null)
 
@@ -27,6 +29,8 @@ describe "Mongraph", ->
   regexID = /^[a-f0-9]{24}$/
 
   before (done) ->
+
+    console.log "    -> Testing against '#{neo4jURL}' (neo4j) and '#{mongodbURL}' (mongodb)"
 
     # Establish connections to mongodb + neo4j
     graph = new neo4j.GraphDatabase(neo4jURL)
@@ -755,7 +759,7 @@ describe "Mongraph", ->
                         expect(plays[0].data.instrument).to.be 'guitar'
                         expect(plays[1].data.song).to.be 'Everlong'
                         dave.allRelationships '*', (err, relations) ->
-                          dave.allRelationships '*', { where: { relationship: "r.instrument! = 'guitar'" }, debug: true }, (err, relations, options) ->
+                          dave.allRelationships '*', { where: { relationship: "r.instrument = 'guitar'" }, debug: true }, (err, relations, options) ->                            
                             expect(relations).to.have.length 1
                             expect(relations[0].data.instrument).to.be.equal 'guitar'
                             if cleanupNodes

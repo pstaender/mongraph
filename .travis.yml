@@ -5,3 +5,6 @@ node_js:
 services:
   - mongodb
   - neo4j
+rvm:
+  - 1.9.3
+before_install: ruby neo4j_services.rb install && sleep 2 && ruby neo4j_services.rb start && sleep 3

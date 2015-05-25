@@ -1,3 +1,4 @@
+.DS_Store
 node_modules/*
 src/*.js
 src/*.map
@@ -5,6 +6,5 @@ test/*.js
 test/*.map
 docs/*
 npm-debug.log
-.DS_Store
 .git
 .git/*

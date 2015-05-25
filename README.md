@@ -246,7 +246,19 @@ You'll find examples in `test/tests.coffee` and `examples/`.
 
 #### 0.1.14
 
-* **API Change:** the collection of the corresponding document will be stored from now on as `_collection` instead of `collection` in each node. e.g.: `node -> { data: { _id: 5ef6…, _collection: 'people' } }`, reason: continious name conventions in node-, document-, relationship- + path objects
+  * **API Change:** the collection of the corresponding document will be stored from now on as `_collection` instead of `collection` in each node. e.g.: `node -> { data: { _id: 5ef6…, _collection: 'people' } }`, reason: continious name conventions in node-, document-, relationship- + path objects
+
+#### 0.2.0
+
+  * removed legacy node modules (source mapping for instance)
+  * ignoring neo4j v<2
+  * tested sucessfully against mongodb 2.6.x and Neo4J v2.0.x and v2.1.x
+
+### Tests
+
+Tested successfully against mongodb 2.6.x and Neo4J v2.0.x and v2.1.x.
+Not ready for Neo4j v2.2 since the [neo4j module](https://github.com/thingdom/node-neo4j) is still in development.
+Older Neo4j version than 2.x are not supported anymore.
 
 ### License
 
@@ -270,14 +282,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   * [Marian C Moldovan](https://github.com/beeva-marianmoldovan)
   * [Robert Klep](https://github.com/robertklep)
+  * [Joaquin Navarro](https://github.com/beeva-joaquinnavarro)
 
 ### Known issues and upcoming features
 
   * process tools should avoid loading all documents on specific mongodb queries -> more effective queries
-  * replace of neo4j module with a neo4j mapper to have a more mongoose-like experience throughout
   * using document `_id` as primary key in neo4j as well (in other words, drop support for `node_id` / `id`)
   * using labels-feature for nodes (neo4j 2.0+) instead of `_collection` property
   * dump and restore of relationships
-  * current release is only tested on neo4j 1.8, other version might have problems (please run tests to be sure); since the next release will only support neo4j 2.0+ I can't make any effort to support minor versions
   * real-life benchmarks
-  * Currently mongraph works with Neo4j 2.0+
