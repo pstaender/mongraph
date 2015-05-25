@@ -5,7 +5,8 @@ Mongraph [mɔ̃ ˈɡrɑːf]
 
 Mongraph combines documentstorage database with graph-database relationships by creating a corresponding node for each document.
 
-**Experimental**
+**Mongraph is experimental**
+
 **It's working with Neo4j v2.0.x - v2.1.x and MongoDB v2.x - v3.0**
 
 ### Installation
@@ -227,7 +228,13 @@ Not ready for Neo4j v2.2 since the [neo4j module](https://github.com/thingdom/no
 
 Older Neo4j version than 2.x are not supported anymore.
 
-To run tests, specify a port for neo4j (default is set to `7474`) and execute with:
+To run tests:
+
+```sh
+  $ mocha
+```
+
+Or specify a port for neo4j (default is set to `7474`):
 
 ```sh
   $ mocha --globals=7010
